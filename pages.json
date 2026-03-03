@@ -1,0 +1,620 @@
+{
+	"pages": [ //pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
+		{
+			"path": "pages/splash/splash",
+			"style": {
+				"navigationBarHidden": true,
+				"backgroundColor": "#4A90E2"
+			}
+		},
+		{
+			"path": "pages/login/login",
+			"style": {
+				"navigationBarTitleText": "登录",
+				"navigationBarBackgroundColor": "#4A90E2",
+				"app-plus": {
+					"titleNView": {
+						"buttons": [] // 清空原生导航栏按钮，包括返回键
+					}
+				},
+				"navigationStyle": "custom" // 自定义导航栏，原生返回键消失
+			}
+		},
+		{
+			"path": "pages/worker/share-like",
+			"style": {
+				"navigationBarTitleText": "拉老乡点赞"
+			}
+		},
+
+		{
+			"path": "pages/home/home",
+			"style": {
+				"navigationBarTitleText": "首页",
+				"tabBar": {
+					"text": "首页",
+					"iconPath": "static/tab-home.png",
+					"selectedIconPath": "static/tab-home-active.png"
+				},
+				"app-plus": {
+					"titleNView": {
+						"buttons": [] // 清空原生导航栏按钮，包括返回键
+					}
+				},
+				"navigationStyle": "custom" // 自定义导航栏，原生返回键消失
+			}
+		},
+		{
+			"path": "pages/order/order-list",
+			"style": {
+				"navigationBarTitleText": "订单列表"
+			}
+		},
+		{
+			"path": "pages/order/order-detail",
+			"style": {
+				"navigationBarTitleText": "订单详情"
+			}
+		},
+		{
+			"path": "pages/order/process-split",
+			"style": {
+				"navigationBarTitleText": "工序拆分"
+			}
+		},
+		{
+			"path": "pages/worker/piece-rate",
+			"style": {
+				"navigationBarTitleText": "工人计件"
+			}
+		},
+		{
+			"path": "pages/worker/wechat-ledger",
+			"style": {
+				"navigationBarTitleText": "微信账本"
+			}
+		},
+		{
+			"path": "pages/worker/personal-ledger",
+			"style": {
+				"navigationBarTitleText": "个人账本"
+			}
+		},
+		{
+			"path": "pages/worker/wage-history",
+			"style": {
+				"navigationBarTitleText": "工资历史"
+			}
+		},
+		{
+			"path": "pages/worker/skill-profile",
+			"style": {
+				"navigationBarTitleText": "技能档案"
+			}
+		},
+		{
+			"path": "pages/worker/simple-piece-rate",
+			"style": {
+				"navigationBarTitleText": "简单计件"
+			}
+		},
+		{
+			"path": "pages/finance/expense-input",
+			"style": {
+				"navigationBarTitleText": "开支录入"
+			}
+		},
+		{
+			"path": "pages/finance/profit-dashboard",
+			"style": {
+				"navigationBarTitleText": "利润看板"
+			}
+		},
+		{
+			"path": "pages/finance/rent-input",
+			"style": {
+				"navigationBarTitleText": "房租费用输入"
+			}
+		},
+		{
+			"path": "pages/finance/utility-input",
+			"style": {
+				"navigationBarTitleText": "水电费用输入"
+			}
+		},
+		{
+			"path": "pages/finance/fixed-expense-input",
+			"style": {
+				"navigationBarTitleText": "月固定费用输入"
+			}
+		},
+		{
+			"path": "pages/approval/approval-list",
+			"style": {
+				"navigationBarTitleText": "审批列表"
+			}
+		},
+		{
+			"path": "pages/social/recruitment-list",
+			"style": {
+				"navigationBarTitleText": "招聘信息",
+				"app-plus": {
+					"titleNView": {
+						"buttons": [] // 清空原生导航栏按钮，包括返回键
+					}
+				},
+				"navigationStyle": "custom" // 自定义导航栏，原生返回键消失
+			}
+		},
+		{
+			"path": "pages/social/publish-recruitment",
+			"style": {
+				"navigationBarTitleText": "发布招聘"
+			}
+		},
+		{
+			"path": "pages/social/resume-list",
+			"style": {
+				"navigationBarTitleText": "简历列表"
+			}
+		},
+		{
+			"path": "pages/social/resume-detail",
+			"style": {
+				"navigationBarTitleText": "简历详情"
+			}
+		},
+
+		{
+			"path": "pages/social/factory-profile",
+			"style": {
+				"navigationBarTitleText": "工厂档案"
+			}
+		},
+		{
+			"path": "pages/social/company-details",
+			"style": {
+				"navigationBarTitleText": "公司详情"
+			}
+		},
+
+		{
+			"path": "pages/social/recruitment-simple",
+			"style": {
+				"navigationBarTitleText": "招聘详情"
+			}
+		},
+		{
+			"path": "pages/social/evaluate-factory",
+			"style": {
+				"navigationBarTitleText": "评价工厂"
+			}
+		},
+		{
+			"path": "pages/social/evaluate-worker",
+			"style": {
+				"navigationBarTitleText": "评价工人"
+			}
+		},
+		{
+			"path": "pages/social/evaluate-peer",
+			"style": {
+				"navigationBarTitleText": "评价工友"
+			}
+		},
+		{
+			"path": "pages/social/evaluate-ledger",
+			"style": {
+				"navigationBarTitleText": "记账背书评价"
+			}
+		},
+		{
+			"path": "pages/social/evaluate-interview",
+			"style": {
+				"navigationBarTitleText": "面试评价"
+			}
+		},
+		{
+			"path": "pages/social/worker-details",
+			"style": {
+				"navigationBarTitleText": "工人详情"
+			}
+		},
+		{
+			"path": "pages/social/worker-search",
+			"style": {
+				"navigationBarTitleText": "招工搜索"
+			}
+		},
+		{
+			"path": "pages/social/test-recruitment",
+			"style": {
+				"navigationBarTitleText": "测试招聘列表"
+			}
+		},
+		{
+			"path": "pages/social/simple-recruitment",
+			"style": {
+				"navigationBarTitleText": "简化招聘列表"
+			}
+		},
+		{
+			"path": "pages/worker/employee-home",
+			"style": {
+				"navigationBarTitleText": "",
+				"navigationBarHidden": true
+			}
+		},
+		{
+			"path": "pages/worker/material-receipt",
+			"style": {
+				"navigationBarTitleText": "来料登记"
+			}
+		},
+		{
+			"path": "pages/worker/set-wage",
+			"style": {
+				"navigationBarTitleText": "打工价"
+			}
+		},
+		{
+			"path": "pages/worker/delivery",
+			"style": {
+				"navigationBarTitleText": "交货管理"
+			}
+		},
+		{
+			"path": "pages/order/order-progress",
+			"style": {
+				"navigationBarTitleText": "订单进度跟踪"
+			}
+		},
+		{
+			"path": "pages/order/order-add",
+			"style": {
+				"navigationBarTitleText": "新增订单"
+			}
+		},
+		{
+			"path": "pages/order/production-line",
+			"style": {
+				"navigationBarTitleText": "产线管理"
+			}
+		},
+		{
+			"path": "pages/approval/enterprise-list",
+			"style": {
+				"navigationBarTitleText": "企业列表"
+			}
+		},
+		{
+			"path": "pages/approval/application-notification",
+			"style": {
+				"navigationBarTitleText": "申请通知"
+			}
+		},
+		{
+			"path": "pages/approval/user-management",
+			"style": {
+				"navigationBarTitleText": "用户管理"
+			}
+		},
+		{
+			"path": "pages/approval/complaint-management",
+			"style": {
+				"navigationBarTitleText": "投诉管理"
+			}
+		},
+		{
+			"path": "pages/approval/appeal-management",
+			"style": {
+				"navigationBarTitleText": "申诉管理"
+			}
+		},
+		{
+			"path": "pages/approval/referral-dashboard",
+			"style": {
+				"navigationBarTitleText": "拉新数据看板"
+			}
+		},
+
+		{
+			"path": "pages/worker/resignation-apply",
+			"style": {
+				"navigationBarTitleText": "离职申请"
+			}
+		},
+		{
+			"path": "pages/worker/ledger",
+			"style": {
+				"navigationBarTitleText": "账本",
+				"app-plus": {
+					"titleNView": {
+						"buttons": [] // 清空原生导航栏按钮，包括返回键
+					}
+				},
+				"navigationStyle": "custom" // 自定义导航栏，原生返回键消失
+			}
+		},
+		{
+			"path": "pages/worker/my-page",
+			"style": {
+				"navigationBarTitleText": "个人中心",
+				"app-plus": {
+					"titleNView": {
+						"buttons": [] // 清空原生导航栏按钮，包括返回键
+					}
+				},
+				"navigationStyle": "custom" // 自定义导航栏，原生返回键消失
+			}
+		},
+		{
+			"path": "pages/worker/follows",
+			"style": {
+				"navigationBarTitleText": "关注"
+			}
+		},
+		{
+			"path": "pages/worker/invite-code-input",
+			"style": {
+				"navigationBarTitleText": "输入邀请码"
+			}
+		},
+		{
+			"path": "pages/worker/messages",
+			"style": {
+				"navigationBarTitleText": "消息"
+			}
+		},
+		{
+			"path": "pages/worker/chat",
+			"style": {
+				"navigationBarTitleText": "聊天"
+			}
+		},
+		{
+			"path": "pages/worker/group-chat",
+			"style": {
+				"navigationBarTitleText": "群聊"
+			}
+		},
+		{
+			"path": "pages/factory/score-rules",
+			"style": {
+				"navigationBarTitleText": "如何提升工厂排名？"
+			}
+		},
+		{
+			"path": "pages/worker/referral-page",
+			"style": {
+				"navigationBarTitleText": "邀请拉新"
+			}
+		},
+		{
+			"path": "pages/worker/referral-exclusive",
+			"style": {
+				"navigationBarTitleText": "拉新专属福利"
+			}
+		},
+		{
+			"path": "pages/worker/referral-new-user",
+			"style": {
+				"navigationBarTitleText": "好友邀请"
+			}
+		},
+		{
+			"path": "pages/factory/invite-code-generate",
+			"style": {
+				"navigationBarTitleText": "生成邀请码"
+			}
+		},
+		{
+			"path": "pages/factory/invite-records",
+			"style": {
+				"navigationBarTitleText": "邀请记录"
+			}
+		},
+
+		{
+			"path": "pages/factory/factory-home",
+			"style": {
+				"navigationBarTitleText": "工厂首页",
+				"app-plus": {
+					"titleNView": {
+						"buttons": []
+					}
+				},
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/factory/team-confirmation",
+			"style": {
+				"navigationBarTitleText": "班组确认"
+			}
+		},
+		{
+			"path": "pages/factory/sub-account-management",
+			"style": {
+				"navigationBarTitleText": "子账号管理"
+			}
+		},
+		{
+			"path": "pages/factory/team-management",
+			"style": {
+				"navigationBarTitleText": "班组管理"
+			}
+		},
+
+		{
+			"path": "pages/factory/organization-management",
+			"style": {
+				"navigationBarTitleText": "组织架构管理"
+			}
+		},
+		{
+			"path": "pages/factory/team-stability-dashboard",
+			"style": {
+				"navigationBarTitleText": "团队稳定性看板"
+			}
+		},
+		{
+			"path": "pages/factory/job-management",
+			"style": {
+				"navigationBarTitleText": "岗位管理"
+			}
+		},
+		{
+			"path": "pages/factory/onboarding-process",
+			"style": {
+				"navigationBarTitleText": "线上入职"
+			}
+		},
+		{
+			"path": "pages/factory/reconciliation-management",
+			"style": {
+				"navigationBarTitleText": "对账结算"
+			}
+		},
+		{
+			"path": "pages/factory/ledger-management",
+			"style": {
+				"navigationBarTitleText": "记工管理"
+			}
+		},
+		{
+			"path": "pages/factory/growth-management",
+			"style": {
+				"navigationBarTitleText": "运营增长"
+			}
+		},
+		{
+			"path": "pages/factory/efficiency-tools",
+			"style": {
+				"navigationBarTitleText": "效率工具"
+			}
+		},
+		{
+			"path": "pages/worker/invite-confirmation",
+			"style": {
+				"navigationBarTitleText": "班组绑定确认"
+			}
+		},
+		{
+			"path": "pages/ai-assistant/ai-assistant",
+			"style": {
+				"navigationBarTitleText": "AI 语音助手"
+			}
+		},
+		{
+			"path": "pages/helma/wage-big-data",
+			"style": {
+				"navigationBarTitleText": "工价大数据查询"
+			}
+		},
+		{
+			"path": "pages/helma/wage-data-detail",
+			"style": {
+				"navigationBarTitleText": "工价数据详情"
+			}
+		},
+		{
+			"path": "pages/helma/wage-dashboard",
+			"style": {
+				"navigationBarTitleText": "工价大数据看板"
+			}
+		},
+		{
+			"path": "pages/worker/resume-share",
+			"style": {
+				"navigationBarTitleText": "极简简历"
+			}
+		},
+		{
+			"path": "pages/worker/privacy-settings",
+			"style": {
+				"navigationBarTitleText": "隐私设置"
+			}
+		},
+		{
+			"path": "pages/worker/feedback",
+			"style": {
+				"navigationBarTitleText": "意见反馈"
+			}
+		},
+		{
+			"path": "pages/worker/personal-info",
+			"style": {
+				"navigationBarTitleText": "个人信息"
+			}
+		},
+		{
+			"path": "pages/worker/privacy-settings",
+			"style": {
+				"navigationBarTitleText": "隐私设置"
+			}
+		},
+		{
+			"path": "pages/worker/income-management",
+			"style": {
+				"navigationBarTitleText": "收入管理"
+			}
+		},
+		{
+			"path": "pages/worker/income-analysis",
+			"style": {
+				"navigationBarTitleText": "收入分析"
+			}
+		},
+		{
+			"path": "pages/worker/growth-center",
+			"style": {
+				"navigationBarTitleText": "我的搞钱成长"
+			}
+		},
+		{
+			"path": "pages/social/seasonal-jobs",
+			"style": {
+				"navigationBarTitleText": "旺季高薪推荐"
+			}
+		}
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "black",
+		"navigationBarBackgroundColor": "#F8F8F8",
+		"backgroundColor": "#F8F8F8"
+	},
+	"tabBar": {
+		"color": "#666",
+		"selectedColor": "#4A90E2",
+		"backgroundColor": "#fff",
+		"borderStyle": "black",
+		"list": [
+			{
+				"pagePath": "pages/home/home",
+				"text": "首页",
+				"iconPath": "static/tab-home.png",
+				"selectedIconPath": "static/tab-home-active.png"
+			},
+			{
+				"pagePath": "pages/order/order-list",
+				"text": "订单",
+				"iconPath": "static/tab-order.png",
+				"selectedIconPath": "static/tab-order-active.png"
+			},
+			{
+				"pagePath": "pages/worker/piece-rate",
+				"text": "计件",
+				"iconPath": "static/tab-worker.png",
+				"selectedIconPath": "static/tab-worker-active.png"
+			},
+			{
+				"pagePath": "pages/finance/profit-dashboard",
+				"text": "财务",
+				"iconPath": "static/tab-finance.png",
+				"selectedIconPath": "static/tab-finance-active.png"
+			}
+		]
+	},
+	"uniIdRouter": {}
+}
