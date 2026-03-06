@@ -173,7 +173,7 @@
           <text class="level-title">长期绑定持续奖励</text>
           <view class="reward-details">
             <view class="reward-row">
-              <text class="reward-label">推荐工厂升级为优质工厂：</text>
+              <text class="reward-label">推荐工厂升级为B级及以上：</text>
               <text class="reward-value">90天简历置顶 + 500积分</text>
             </view>
             <view class="reward-row">
@@ -204,15 +204,15 @@
           <text class="level-title">基础拉新奖励（拉1人得1次，无上限）</text>
           <view class="reward-details">
             <view class="reward-row">
-              <text class="reward-label">潜力工厂：</text>
+              <text class="reward-label">C级工厂：</text>
               <text class="reward-value">3份通用简历解锁权限</text>
             </view>
             <view class="reward-row">
-              <text class="reward-label">普通工厂：</text>
+              <text class="reward-label">B级工厂：</text>
               <text class="reward-value">5份通用简历解锁权限</text>
             </view>
             <view class="reward-row">
-              <text class="reward-label">优质工厂：</text>
+              <text class="reward-label">A/S级工厂：</text>
               <text class="reward-value">5份通用简历解锁权限 + 1份优质用户专属解锁权限</text>
             </view>
           </view>
@@ -222,15 +222,15 @@
           <text class="level-title">基础拉新额外奖励（完成计件记账）</text>
           <view class="reward-details">
             <view class="reward-row">
-              <text class="reward-label">潜力工厂：</text>
+              <text class="reward-label">C级工厂：</text>
               <text class="reward-value">额外加赠2份通用权限</text>
             </view>
             <view class="reward-row">
-              <text class="reward-label">普通工厂：</text>
+              <text class="reward-label">B级工厂：</text>
               <text class="reward-value">额外加赠3份通用权限</text>
             </view>
             <view class="reward-row">
-              <text class="reward-label">优质工厂：</text>
+              <text class="reward-label">A/S级工厂：</text>
               <text class="reward-value">额外加赠2份优质专属权限</text>
             </view>
           </view>
@@ -240,15 +240,15 @@
           <text class="level-title">月度阶梯叠加奖励1（累计推荐5名及以上）</text>
           <view class="reward-details">
             <view class="reward-row">
-              <text class="reward-label">潜力工厂：</text>
+              <text class="reward-label">C级工厂：</text>
               <text class="reward-value">额外加赠30份通用权限 + 7天全平台岗位置顶</text>
             </view>
             <view class="reward-row">
-              <text class="reward-label">普通工厂：</text>
+              <text class="reward-label">B级工厂：</text>
               <text class="reward-value">额外加赠50份通用权限 + 10天全平台岗位置顶</text>
             </view>
             <view class="reward-row">
-              <text class="reward-label">优质工厂：</text>
+              <text class="reward-label">A/S级工厂：</text>
               <text class="reward-value">额外加赠10份优质专属权限 + 15天优质岗位置顶</text>
             </view>
           </view>
@@ -258,15 +258,15 @@
           <text class="level-title">月度阶梯叠加奖励2（累计推荐10名及以上）</text>
           <view class="reward-details">
             <view class="reward-row">
-              <text class="reward-label">潜力工厂：</text>
+              <text class="reward-label">C级工厂：</text>
               <text class="reward-value">额外加赠80份通用权限 + 15天岗位置顶</text>
             </view>
             <view class="reward-row">
-              <text class="reward-label">普通工厂：</text>
+              <text class="reward-label">B级工厂：</text>
               <text class="reward-value">额外加赠120份通用权限 + 20天岗位置顶</text>
             </view>
             <view class="reward-row">
-              <text class="reward-label">优质工厂：</text>
+              <text class="reward-label">A/S级工厂：</text>
               <text class="reward-value">额外加赠20份优质专属权限 + 30天优质岗位置顶</text>
             </view>
           </view>
@@ -276,15 +276,15 @@
           <text class="level-title">月度阶梯叠加奖励3（累计推荐20名及以上）</text>
           <view class="reward-details">
             <view class="reward-row">
-              <text class="reward-label">潜力工厂：</text>
-              <text class="reward-value">破格升级为普通工厂 + 一次性200份通用权限</text>
+              <text class="reward-label">C级工厂：</text>
+              <text class="reward-value">破格升级为B级工厂 + 一次性200份通用权限</text>
             </view>
             <view class="reward-row">
-              <text class="reward-label">普通工厂：</text>
-              <text class="reward-value">破格升级为优质工厂 + 一次性300份通用权限</text>
+              <text class="reward-label">B级工厂：</text>
+              <text class="reward-value">破格升级为A级工厂 + 一次性300份通用权限</text>
             </view>
             <view class="reward-row">
-              <text class="reward-label">优质工厂：</text>
+              <text class="reward-label">A/S级工厂：</text>
               <text class="reward-value">一次性500份通用权限 + 50份优质专属权限 + 年度靠谱工厂榜优先入选资格</text>
             </view>
           </view>

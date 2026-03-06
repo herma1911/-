@@ -8,6 +8,15 @@
       </view>
       
       <view class="form-item required">
+        <text class="form-label">计薪模式</text>
+        <text class="required-mark">*</text>
+        <view class="wage-mode-buttons">
+          <button type="default" :class="['wage-mode-btn', selectedWageMode === 'piecework' ? 'active' : '']" @click="selectWageMode('piecework')">计件岗</button>
+          <button type="default" :class="['wage-mode-btn', selectedWageMode === 'hourly' ? 'active' : '']" @click="selectWageMode('hourly')">计时岗</button>
+        </view>
+      </view>
+      
+      <view class="form-item required">
         <text class="form-label">职位名称</text>
         <text class="required-mark">*</text>
         <input type="text" v-model="jobTitle" placeholder="请输入招聘岗位，如：平车工/锁边工" class="form-input" />
@@ -26,6 +35,18 @@
           <button type="default" :class="['category-btn', selectedCategory === '梭织' ? 'active' : '']" @click="selectCategory('梭织')">梭织</button>
           <button type="default" :class="['category-btn', selectedCategory === '牛仔' ? 'active' : '']" @click="selectCategory('牛仔')">牛仔</button>
           <button type="default" :class="['category-btn', selectedCategory === '童装' ? 'active' : '']" @click="selectCategory('童装')">童装</button>
+        </view>
+      </view>
+      <view class="form-item">
+        <text class="form-label">款式照片</text>
+        <text class="tip-small">优先上传款式照片，招工效果提升80%</text>
+        <button type="default" class="upload-btn" @click="uploadPhoto">上传照片</button>
+        <!-- 照片预览 -->
+        <view v-if="photos.length > 0" class="photo-preview">
+          <view v-for="(photo, index) in photos" :key="index" class="photo-item">
+            <image :src="photo" mode="aspectFill" class="photo-img" />
+            <button type="default" class="remove-photo-btn" @click="removePhoto(index)">×</button>
+          </view>
         </view>
       </view>
       <view class="form-item">
@@ -77,11 +98,23 @@
           <button type="default" :class="['type-btn', selectedType === '梭织' ? 'active' : '']" @click="selectType('梭织')">梭织</button>
         </view>
       </view>
-      <!-- 工序配置模块 -->
-      <view class="form-item required">
+      <!-- 计件模式：工序配置模块 -->
+      <view v-if="selectedWageMode === 'piecework'" class="form-item required">
         <!-- 模块前置引导 -->
         <view class="process-guide">
           <text class="guide-text">【精准招工提醒】填写的工序越详细，越能精准匹配对口熟练工人，大幅减少无效咨询！</text>
+        </view>
+        
+        <text class="form-label">细分品类</text>
+        <text class="required-mark">*</text>
+        <view class="category-buttons">
+          <button type="default" 
+                  v-for="category in garmentCategories" 
+                  :key="category.id"
+                  :class="['category-btn', selectedGarmentCategory === category.name ? 'active' : '']"
+                  @click="selectGarmentCategory(category.name)">
+            {{category.name}}
+          </button>
         </view>
         
         <text class="form-label">岗位工序</text>
@@ -128,6 +161,79 @@
           </view>
         </view>
         
+        <!-- 工序照片上传 -->
+        <view class="process-photo-section">
+          <text class="description-label">工序照片（选填）：</text>
+          <text class="tip-small">上传工序细节照片，提升招工精准度</text>
+          <button type="default" class="upload-btn" @click="uploadProcessPhoto">上传工序照片</button>
+          <!-- 工序照片预览 -->
+          <view v-if="processPhotos.length > 0" class="photo-preview">
+            <view v-for="(photo, index) in processPhotos" :key="index" class="photo-item">
+              <image :src="photo" mode="aspectFill" class="photo-img" />
+              <button type="default" class="remove-photo-btn" @click="removeProcessPhoto(index)">×</button>
+            </view>
+          </view>
+        </view>
+        
+        <!-- 工价输入 -->
+        <view class="form-item">
+          <text class="form-label">工价（元/件）</text>
+          <input type="number" v-model="wageRate" placeholder="请输入工价" class="form-input" />
+          
+          <!-- 工价参考展示 -->
+          <view v-if="showPriceReference && priceReference" class="price-reference-section">
+            <view :class="['price-reference-header', isLowWage ? 'low-wage' : '']" @click="togglePriceReferenceExpansion">
+              <text class="price-reference-text">
+                工价参考：{{priceReference.local.avgPrice.toFixed(3)}}元/件，区间{{priceReference.local.minPrice.toFixed(3)}}-{{priceReference.local.maxPrice.toFixed(3)}}元/件
+              </text>
+              <text class="expand-icon">{{expandedPriceReference ? '▼' : '▶'}}</text>
+            </view>
+            <!-- 低工价提示 -->
+            <text v-if="isLowWage" class="low-wage-tip">该工价低于本地行情，可能会影响招聘效果</text>
+            
+            <!-- 展开的工价参考详情 -->
+            <view v-if="expandedPriceReference" class="price-reference-details">
+              <view class="price-reference-item">
+                <text class="price-reference-label">全国平均：</text>
+                <text class="price-reference-value">{{priceReference.national.avgPrice.toFixed(3)}}元/件</text>
+              </view>
+              <view class="price-reference-item">
+                <text class="price-reference-label">全国区间：</text>
+                <text class="price-reference-value">{{priceReference.national.minPrice.toFixed(3)}}-{{priceReference.national.maxPrice.toFixed(3)}}元/件</text>
+              </view>
+              <view class="price-reference-item">
+                <text class="price-reference-label">本地平均：</text>
+                <text class="price-reference-value">{{priceReference.local.avgPrice.toFixed(3)}}元/件</text>
+              </view>
+              <view class="price-reference-item">
+                <text class="price-reference-label">本地区间：</text>
+                <text class="price-reference-value">{{priceReference.local.minPrice.toFixed(3)}}-{{priceReference.local.maxPrice.toFixed(3)}}元/件</text>
+              </view>
+              <view class="price-reference-item">
+                <text class="price-reference-label">样本量：</text>
+                <text class="price-reference-value">全国{{priceReference.national.sampleCount}}，本地{{priceReference.local.sampleCount}}</text>
+              </view>
+              
+              <!-- 面料/难度系数细分参考 -->
+              <view v-if="priceReference.details && priceReference.details.length > 0" class="price-reference-details-section">
+                <text class="details-section-title">细分参考：</text>
+                <view v-for="(detail, index) in priceReference.details" :key="index" class="price-reference-detail-item">
+                  <text class="detail-item-label">{{detail.fabricType}} (难度系数：{{detail.difficultyCoefficient}})：</text>
+                  <text class="detail-item-value">{{detail.avgPrice.toFixed(3)}}元/件 ({{detail.minPrice.toFixed(3)}}-{{detail.maxPrice.toFixed(3)}})</text>
+                </view>
+              </view>
+              
+              <!-- 反馈按钮 -->
+              <view class="price-reference-feedback">
+                <text class="feedback-label">反馈：</text>
+                <button type="default" class="feedback-btn" @click="feedbackPriceReference('偏高')">偏高</button>
+                <button type="default" class="feedback-btn" @click="feedbackPriceReference('准确')">准确</button>
+                <button type="default" class="feedback-btn" @click="feedbackPriceReference('偏低')">偏低</button>
+              </view>
+            </view>
+          </view>
+        </view>
+        
         <!-- 工序补充说明 -->
         <view class="process-description-section">
           <text class="description-label">工序细节说明（选填）：</text>
@@ -136,17 +242,70 @@
                     class="form-textarea" />
         </view>
       </view>
-      <view class="form-item">
-        <text class="form-label">款式照片</text>
-        <button type="default" class="upload-btn" @click="uploadPhoto">上传照片</button>
-        <!-- 照片预览 -->
-        <view v-if="photos.length > 0" class="photo-preview">
-          <view v-for="(photo, index) in photos" :key="index" class="photo-item">
-            <image :src="photo" mode="aspectFill" class="photo-img" />
-            <button type="default" class="remove-photo-btn" @click="removePhoto(index)">×</button>
+      
+      <!-- 计时模式：岗位类型选择 -->
+      <view v-if="selectedWageMode === 'hourly'" class="form-item required">
+        <text class="form-label">岗位类型</text>
+        <text class="required-mark">*</text>
+        <view class="hourly-job-type-categories">
+          <view v-for="category in hourlyJobTypes" :key="category.category" class="hourly-job-type-category">
+            <view class="category-header" @click="toggleHourlyJobTypeCategory(category.category)">
+              <text class="category-title">{{category.category}}</text>
+              <text class="expand-icon">{{ expandedHourlyJobTypeCategories[category.category] ? '▼' : '▶' }}</text>
+            </view>
+            <view v-if="expandedHourlyJobTypeCategories[category.category]" class="hourly-job-type-tags">
+              <button type="default" 
+                      v-for="jobType in category.options" 
+                      :key="jobType"
+                      :class="['hourly-job-type-tag', selectedHourlyJobTypes.includes(jobType) ? 'active' : '']"
+                      @click="toggleHourlyJobType(jobType)">
+                {{jobType}}
+              </button>
+            </view>
+          </view>
+        </view>
+        
+        <!-- 已选岗位类型展示 -->
+        <view v-if="selectedHourlyJobTypes.length > 0" class="selected-processes">
+          <text class="selected-label">已选岗位类型：</text>
+          <view class="selected-tags">
+            <view v-for="jobType in selectedHourlyJobTypes" :key="jobType" class="selected-tag">
+              <text class="tag-text">{{jobType}}</text>
+              <text class="tag-remove" @click="removeHourlyJobType(jobType)">×</text>
+            </view>
+          </view>
+        </view>
+        
+        <!-- 工时偏好设置 -->
+        <view class="hourly-preference-section">
+          <text class="description-label">工时偏好：</text>
+          <view class="hourly-preference-options">
+            <view class="preference-item">
+              <text class="preference-label">工时制度：</text>
+              <picker v-model="workHourSystemIndex" :range="workHourSystems" class="form-picker">
+                <view class="picker-display">{{ workHourSystems[workHourSystemIndex] }}</view>
+              </picker>
+            </view>
+            <view class="preference-item">
+              <text class="preference-label">用工周期：</text>
+              <picker v-model="employmentCycleIndex" :range="employmentCycles" class="form-picker">
+                <view class="picker-display">{{ employmentCycles[employmentCycleIndex] }}</view>
+              </picker>
+            </view>
+            <view class="preference-item">
+              <text class="preference-label">固定工时：</text>
+              <picker v-model="fixedHoursIndex" :range="fixedHoursOptions" class="form-picker">
+                <view class="picker-display">{{ fixedHoursOptions[fixedHoursIndex] }}</view>
+              </picker>
+            </view>
+            <view class="preference-item checkbox-item">
+              <checkbox :checked="acceptOvertime" @change="acceptOvertime = !acceptOvertime" />
+              <text class="checkbox-label">是否接受加班</text>
+            </view>
           </view>
         </view>
       </view>
+
       <view class="form-item">
         <text class="form-label">福利承诺</text>
         <view class="benefit-options">
@@ -213,6 +372,7 @@ export default {
       selectedType: '',
       selectedSkills: [],
       photos: [],
+      processPhotos: [],
       benefits: {
         includeMeals: false,
         includeAccommodation: false,
@@ -221,18 +381,63 @@ export default {
         overtimePay: false
       },
       avatar: '',
+      // 计薪模式相关
+      selectedWageMode: '', // 'piecework' 或 'hourly'
       // 工序相关
       processCategories: [],
       selectedProcessCategory: '',
       selectedProcesses: [],
       customProcessInput: '',
       processDescription: '',
-      expandedCategories: {}
+      expandedCategories: {},
+      // 计时工人岗位类型相关
+      hourlyJobTypes: [
+        { category: '生产辅助类', options: ['后整包装', '大烫/小烫', '服装质检', '裁床辅助', '锁边/杂工'] },
+        { category: '管理职能类', options: ['车间组长', '跟单员', '仓管员', '品控主管'] },
+        { category: '临时用工类', options: ['日结普工', '旺季临时工', '夜班替补'] }
+      ],
+      selectedHourlyJobTypes: [],
+      expandedHourlyJobTypeCategories: {},
+      // 工时偏好相关
+      workHourSystems: ['长白班', '两班倒', '三班倒'],
+      workHourSystemIndex: 0,
+      employmentCycles: ['长期固定工', '临时工', '日结', '周结', '月结'],
+      employmentCycleIndex: 0,
+      fixedHoursOptions: ['8小时', '10小时', '12小时'],
+      fixedHoursIndex: 0,
+      acceptOvertime: false,
+      // 服装品类数据
+      garmentCategories: [
+        { id: 1, name: '圆领T恤' },
+        { id: 2, name: '连帽卫衣' },
+        { id: 3, name: '休闲裤' },
+        { id: 4, name: '牛仔裤' },
+        { id: 5, name: '衬衫' },
+        { id: 6, name: '外套' },
+        { id: 7, name: '裙子' },
+        { id: 8, name: '童装' }
+      ],
+      // 工价相关
+      wageRate: '',
+      // 工价参考相关
+      priceReference: null,
+      showPriceReference: false,
+      expandedPriceReference: false,
+      // 选择的细分品类
+      selectedGarmentCategory: ''
     }
   },
   onLoad() {
     this.loadDefaultLocation()
     this.initProcessWordLibrary()
+  },
+  computed: {
+    // 判断工价是否低于本地行情
+    isLowWage() {
+      if (!this.wageRate || !this.priceReference) return false
+      const wage = parseFloat(this.wageRate)
+      return wage < this.priceReference.local.minPrice
+    }
   },
   methods: {
     // 获取经验等级对应的显示标签
@@ -309,10 +514,27 @@ export default {
         return
       }
       
-      // 验证工序必填
-      if (this.selectedProcesses.length === 0) {
+      // 验证计薪模式必填
+      if (!this.selectedWageMode) {
+        uni.showToast({
+          title: '请选择计薪模式',
+          icon: 'none'
+        })
+        return
+      }
+      
+      // 验证工序或岗位类型必填
+      if (this.selectedWageMode === 'piecework' && this.selectedProcesses.length === 0) {
         uni.showToast({
           title: '请至少添加一个工序',
+          icon: 'none'
+        })
+        return
+      }
+      
+      if (this.selectedWageMode === 'hourly' && this.selectedHourlyJobTypes.length === 0) {
+        uni.showToast({
+          title: '请至少选择一个岗位类型',
           icon: 'none'
         })
         return
@@ -345,8 +567,17 @@ export default {
         publishDate: new Date().toISOString().split('T')[0],
         applicantCount: 0,
         type: this.selectedType,
-        skills: this.selectedProcesses, // 使用工序配置替代技能选择
+        wageMode: this.selectedWageMode, // 计薪模式
+        skills: this.selectedWageMode === 'piecework' ? this.selectedProcesses : [], // 计件模式：工序
+        hourlyJobTypes: this.selectedWageMode === 'hourly' ? this.selectedHourlyJobTypes : [], // 计时模式：岗位类型
+        workHourPreference: this.selectedWageMode === 'hourly' ? {
+          workHourSystem: this.workHourSystems[this.workHourSystemIndex],
+          employmentCycle: this.employmentCycles[this.employmentCycleIndex],
+          fixedHours: this.fixedHoursOptions[this.fixedHoursIndex],
+          acceptOvertime: this.acceptOvertime
+        } : {}, // 计时模式：工时偏好
         photos: this.photos,
+        processPhotos: this.processPhotos,
         benefits: this.benefits,
         avatar: this.avatar,
         verificationType: verificationType,
@@ -440,6 +671,35 @@ export default {
         icon: 'success'
       })
     },
+    uploadProcessPhoto() {
+      uni.chooseImage({
+        count: 5, // 最多选择5张工序照片
+        sizeType: ['original', 'compressed'],
+        sourceType: ['album', 'camera'],
+        success: (res) => {
+          const tempFilePaths = res.tempFilePaths
+          this.processPhotos = this.processPhotos.concat(tempFilePaths)
+          uni.showToast({
+            title: '工序照片上传成功',
+            icon: 'success'
+          })
+        },
+        fail: (err) => {
+          console.log('选择工序照片失败', err)
+          uni.showToast({
+            title: '选择工序照片失败',
+            icon: 'none'
+          })
+        }
+      })
+    },
+    removeProcessPhoto(index) {
+      this.processPhotos.splice(index, 1)
+      uni.showToast({
+        title: '工序照片已删除',
+        icon: 'success'
+      })
+    },
     cancel() {
       uni.navigateBack()
     },
@@ -481,6 +741,11 @@ export default {
         this.selectedProcesses.splice(index, 1)
       } else {
         this.selectedProcesses.push(process)
+      }
+      
+      // 当选择了服装品类和工序时，获取工价参考
+      if (this.selectedGarmentCategory && this.selectedProcesses.length > 0) {
+        this.fetchPriceReference()
       }
     },
     
@@ -545,6 +810,11 @@ export default {
       // 清空输入框
       this.customProcessInput = ''
       
+      // 当选择了服装品类和工序时，获取工价参考
+      if (this.selectedGarmentCategory && this.selectedProcesses.length > 0) {
+        this.fetchPriceReference()
+      }
+      
       uni.showToast({
         title: '工序添加成功',
         icon: 'success'
@@ -557,6 +827,85 @@ export default {
       if (index > -1) {
         this.selectedProcesses.splice(index, 1)
       }
+    },
+    // 计薪模式选择
+    selectWageMode(mode) {
+      this.selectedWageMode = mode
+    },
+    // 切换计时工人岗位类型分类展开状态
+    toggleHourlyJobTypeCategory(category) {
+      this.$set(this.expandedHourlyJobTypeCategories, category, !this.expandedHourlyJobTypeCategories[category])
+    },
+    // 切换计时工人岗位类型选择状态
+    toggleHourlyJobType(jobType) {
+      const index = this.selectedHourlyJobTypes.indexOf(jobType)
+      if (index > -1) {
+        this.selectedHourlyJobTypes.splice(index, 1)
+      } else {
+        this.selectedHourlyJobTypes.push(jobType)
+      }
+    },
+    // 移除计时工人岗位类型
+    removeHourlyJobType(jobType) {
+      const index = this.selectedHourlyJobTypes.indexOf(jobType)
+      if (index > -1) {
+        this.selectedHourlyJobTypes.splice(index, 1)
+      }
+    },
+    // 选择服装品类
+    selectGarmentCategory(category) {
+      this.selectedGarmentCategory = category
+      // 当选择了服装品类和工序时，获取工价参考
+      if (this.selectedGarmentCategory && this.selectedProcesses.length > 0) {
+        this.fetchPriceReference()
+      }
+    },
+    // 获取工价参考
+    fetchPriceReference() {
+      // 模拟工价参考数据
+      this.priceReference = {
+        national: {
+          avgPrice: 0.10,
+          minPrice: 0.08,
+          maxPrice: 0.12,
+          sampleCount: 1200
+        },
+        local: {
+          avgPrice: 0.09,
+          minPrice: 0.07,
+          maxPrice: 0.11,
+          sampleCount: 230
+        },
+        details: [
+          {
+            fabricType: '薄料',
+            difficultyCoefficient: 1.0,
+            avgPrice: 0.09,
+            minPrice: 0.07,
+            maxPrice: 0.11
+          },
+          {
+            fabricType: '中厚料',
+            difficultyCoefficient: 1.2,
+            avgPrice: 0.11,
+            minPrice: 0.09,
+            maxPrice: 0.13
+          }
+        ]
+      }
+      this.showPriceReference = true
+    },
+    // 切换工价参考展开状态
+    togglePriceReferenceExpansion() {
+      this.expandedPriceReference = !this.expandedPriceReference
+    },
+    // 反馈工价参考
+    feedbackPriceReference(type) {
+      // 模拟反馈提交
+      uni.showToast({
+        title: `反馈已提交：${type}`,
+        icon: 'success'
+      })
     }
   }
 }
@@ -722,6 +1071,95 @@ export default {
 .type-btn.active {
   background-color: #4A90E2;
   color: #fff;
+}
+
+/* 计薪模式选择样式 */
+.wage-mode-buttons {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 10rpx;
+}
+
+.wage-mode-btn {
+  flex: 1;
+  padding: 20rpx;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  background-color: #f0f0f0;
+  color: #666;
+}
+
+.wage-mode-btn.active {
+  background-color: #4A90E2;
+  color: #fff;
+}
+
+/* 计时工人岗位类型选择样式 */
+.hourly-job-type-categories {
+  margin: 20rpx 0;
+}
+
+.hourly-job-type-category {
+  margin-bottom: 16rpx;
+  border: 2rpx solid #e0e0e0;
+  border-radius: 12rpx;
+  overflow: hidden;
+}
+
+.hourly-job-type-tags {
+  padding: 20rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  background-color: #fff;
+}
+
+.hourly-job-type-tag {
+  padding: 12rpx 24rpx;
+  border: 2rpx solid #e0e0e0;
+  border-radius: 30rpx;
+  background-color: #f5f5f5;
+  color: #666;
+  font-size: 24rpx;
+}
+
+.hourly-job-type-tag.active {
+  background-color: #4CAF50;
+  color: #fff;
+  border-color: #4CAF50;
+}
+
+/* 工时偏好设置样式 */
+.hourly-preference-section {
+  margin-top: 30rpx;
+}
+
+.hourly-preference-options {
+  margin-top: 20rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.preference-item {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.preference-label {
+  font-size: 24rpx;
+  color: #333;
+  width: 120rpx;
+  flex-shrink: 0;
+}
+
+.preference-item.checkbox-item {
+  gap: 10rpx;
+}
+
+.preference-item.checkbox-item .preference-label {
+  width: auto;
 }
 
 .skill-buttons {
@@ -1014,5 +1452,124 @@ export default {
 
 .safety-tip-item:last-child {
   margin-bottom: 0;
+}
+
+/* 工价参考样式 */
+.price-reference-section {
+  margin-top: 16rpx;
+  border-radius: 8rpx;
+  overflow: hidden;
+}
+
+.price-reference-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16rpx;
+  background-color: #e3f2fd;
+  border: 1rpx solid #2196F3;
+  cursor: pointer;
+}
+
+.price-reference-header.low-wage {
+  background-color: #fff7e6;
+  border-color: #fa8c16;
+}
+
+.price-reference-text {
+  font-size: 24rpx;
+  color: #2196F3;
+  line-height: 1.4;
+}
+
+.price-reference-header.low-wage .price-reference-text {
+  color: #fa8c16;
+}
+
+.price-reference-details {
+  padding: 20rpx;
+  background-color: #f9f9f9;
+  border: 1rpx solid #e0e0e0;
+  border-top: none;
+}
+
+.price-reference-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
+  font-size: 22rpx;
+}
+
+.price-reference-label {
+  color: #666;
+}
+
+.price-reference-value {
+  color: #333;
+  font-weight: 500;
+}
+
+.price-reference-details-section {
+  margin-top: 20rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #e0e0e0;
+}
+
+.details-section-title {
+  font-size: 24rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 16rpx;
+  display: block;
+}
+
+.price-reference-detail-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
+  font-size: 22rpx;
+}
+
+.detail-item-label {
+  color: #666;
+}
+
+.detail-item-value {
+  color: #333;
+}
+
+.price-reference-feedback {
+  margin-top: 20rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.feedback-label {
+  font-size: 22rpx;
+  color: #666;
+  flex-shrink: 0;
+}
+
+.feedback-btn {
+  padding: 6rpx 16rpx;
+  border-radius: 16rpx;
+  font-size: 20rpx;
+  background-color: #f0f0f0;
+  color: #666;
+  border: 1rpx solid #ddd;
+}
+
+.feedback-btn:active {
+  background-color: #e0e0e0;
+}
+
+.low-wage-tip {
+  font-size: 20rpx;
+  color: #fa8c16;
+  margin-top: 8rpx;
+  display: block;
 }
 </style>

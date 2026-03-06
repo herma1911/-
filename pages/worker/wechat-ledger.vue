@@ -78,6 +78,16 @@
         <text class="section-title">本月对账</text>
         <text class="settle-btn" @tap="startReconciliation">开始对账</text>
       </view>
+      
+      <!-- 微信分享区 -->
+      <view class="share-section">
+        <text class="share-title">微信一键转发账单</text>
+        <text class="share-desc">即使老板没有下载app，也可以点击确认对账</text>
+        <button class="share-btn" @tap="shareToWechat">
+          <text class="share-icon">💬</text>
+          <text class="share-text">分享给老板</text>
+        </button>
+      </view>
 
       <view class="reconciliation-info">
         <view class="info-item">
@@ -98,12 +108,122 @@
         </view>
       </view>
     </view>
+
+    <!-- 发起对账弹窗 -->
+    <view v-if="showReconciliationModal" class="modal-overlay" @tap="closeReconciliationModal">
+      <view class="modal-content" @tap.stop>
+        <text class="modal-title">发起对账</text>
+        
+        <!-- 年月选择 -->
+        <view class="form-group">
+          <text class="form-label">选择月份</text>
+          <view class="month-picker">
+            <picker v-model="reconciliationData.year" :range="getYearRange()" class="year-picker">
+              <text class="picker-text">{{ reconciliationData.year }}年</text>
+            </picker>
+            <text class="picker-separator">-</text>
+            <picker v-model="reconciliationData.month" :range="getMonthRange()" class="month-picker">
+              <text class="picker-text">{{ reconciliationData.month }}月</text>
+            </picker>
+          </view>
+        </view>
+        
+        <!-- 日期范围选择 -->
+        <view class="form-group">
+          <text class="form-label">对账日期范围</text>
+          <view class="date-range">
+            <input type="date" v-model="reconciliationData.startDate" class="date-input" />
+            <text class="date-separator">至</text>
+            <input type="date" v-model="reconciliationData.endDate" class="date-input" />
+          </view>
+          <text class="date-hint">建议选择5号到19号之间的日期</text>
+        </view>
+        
+        <!-- 款号工序选择 -->
+        <view class="form-group">
+          <text class="form-label">选择款号和工序</text>
+          
+          <!-- 款号选择 -->
+          <view class="dropdown-container">
+            <input 
+              type="text" 
+              v-model="selectedStyle" 
+              class="form-input" 
+              placeholder="请选择款号" 
+              @tap="toggleStyleDropdown"
+              readonly
+            />
+            <!-- 款号下拉菜单 -->
+            <view v-if="showStyleDropdown" class="dropdown-menu">
+              <view class="dropdown-item" v-for="style in styleHistory" :key="style" @tap="selectStyle(style)">
+                {{ style }}
+              </view>
+            </view>
+          </view>
+          
+          <!-- 工序选择 -->
+          <view class="dropdown-container" v-if="selectedStyle">
+            <input 
+              type="text" 
+              v-model="selectedProcess" 
+              class="form-input" 
+              placeholder="请选择工序" 
+              @tap="toggleProcessDropdown"
+              readonly
+            />
+            <!-- 工序下拉菜单 -->
+            <view v-if="showProcessDropdown && selectedStyle" class="dropdown-menu">
+              <view 
+                v-for="process in getProcessesByStyle(selectedStyle)" 
+                :key="process.processName"
+                class="dropdown-item"
+                @tap="selectProcess(process)"
+              >
+                {{ process.processName }} (¥{{ process.unitPrice }})
+              </view>
+            </view>
+          </view>
+          
+          <!-- 添加按钮 -->
+          <view v-if="selectedStyle && selectedProcess" class="add-button" @tap="addStyleProcess">
+            <text class="add-icon">+</text>
+            <text class="add-text">添加到对账列表</text>
+          </view>
+        </view>
+        
+        <!-- 已选择的款号工序列表 -->
+        <view class="form-group" v-if="reconciliationData.selectedStyles.length > 0">
+          <text class="form-label">已选择的款号工序</text>
+          <view class="selected-list">
+            <view 
+              v-for="(item, index) in reconciliationData.selectedStyles" 
+              :key="index"
+              class="selected-item"
+            >
+              <text class="selected-style">{{ item.style }}</text>
+              <text class="selected-process">{{ item.process }}</text>
+              <text class="remove-icon" @tap="removeStyleProcess(index)">×</text>
+            </view>
+          </view>
+        </view>
+        
+        <!-- 操作按钮 -->
+        <view class="modal-actions">
+          <button class="modal-btn secondary" @tap="closeReconciliationModal">取消</button>
+          <button class="modal-btn primary" @tap="submitReconciliation">发起对账</button>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
 <script>
 export default {
   data() {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    
     return {
       activeTab: 'pending',
       statusTabs: [
@@ -131,7 +251,22 @@ export default {
         { id: 10, date: '2024-08-06', type: 'piece', amount: 770, description: '车工-背心', status: 'confirmed' },
         { id: 11, date: '2024-08-05', type: 'piece', amount: 830, description: '车工-风衣', status: 'confirmed' },
         { id: 12, date: '2024-08-04', type: 'time', amount: 280, description: '加班3.5小时', status: 'pending' }
-      ]
+      ],
+      // 发起对账相关
+      showReconciliationModal: false,
+      reconciliationData: {
+        startDate: '',
+        endDate: '',
+        selectedStyles: [],
+        year: currentYear,
+        month: currentMonth
+      },
+      showStyleDropdown: false,
+      showProcessDropdown: false,
+      styleProcessMap: {},
+      styleHistory: [],
+      selectedStyle: '',
+      selectedProcess: ''
     }
   },
   computed: {
@@ -139,7 +274,27 @@ export default {
       return this.records.filter(record => record.status === this.activeTab)
     }
   },
+  onLoad() {
+    this.loadStyleProcessMap()
+  },
+  watch: {
+    'reconciliationData.year': function(newYear) {
+      this.updateDateRange()
+    },
+    'reconciliationData.month': function(newMonth) {
+      this.updateDateRange()
+    }
+  },
   methods: {
+    loadStyleProcessMap() {
+      // 从本地存储加载款号工序映射
+      const storedStyleProcessMap = uni.getStorageSync('styleProcessMap')
+      this.styleProcessMap = storedStyleProcessMap && Object.keys(storedStyleProcessMap).length > 0 ? storedStyleProcessMap : {}
+      
+      // 从本地存储加载历史款号
+      const storedStyleHistory = uni.getStorageSync('styleHistory')
+      this.styleHistory = storedStyleHistory && storedStyleHistory.length > 0 ? storedStyleHistory : []
+    },
     goBack() {
       uni.navigateBack()
     },
@@ -204,21 +359,16 @@ export default {
       })
     },
     startReconciliation() {
-      uni.showModal({
-        title: '开始对账',
-        content: '确定要开始本月对账吗？系统将生成对账报告并发送给工厂。',
-        success: (res) => {
-          if (res.confirm) {
-            // 模拟对账操作
-            setTimeout(() => {
-              uni.showToast({
-                title: '对账已发起',
-                icon: 'success'
-              })
-            }, 1000)
-          }
-        }
-      })
+      // 计算默认日期范围（当月5号到19号）
+      const { year, month } = this.reconciliationData
+      const startDate = `${year}-${month.toString().padStart(2, '0')}-05`
+      const endDate = `${year}-${month.toString().padStart(2, '0')}-19`
+      
+      this.reconciliationData.startDate = startDate
+      this.reconciliationData.endDate = endDate
+      this.reconciliationData.selectedStyles = []
+      
+      this.showReconciliationModal = true
     },
     exportVoucher() {
       uni.showModal({
@@ -247,6 +397,303 @@ export default {
           title: `${format}导出成功`,
           icon: 'success'
         })
+      }, 1500)
+    },
+    // 微信一键转发账单
+    shareToWechat() {
+      // 生成按款号和工序分组的账单数据
+      const billDetails = this.generateBillDetails()
+      const totalAmount = billDetails.totalAmount
+      
+      uni.showModal({
+        title: '分享账单',
+        content: '确定要将本月账单分享给老板吗？老板无需下载app即可确认对账。',
+        success: (res) => {
+          if (res.confirm) {
+            // 生成账单ID
+            const billId = 'bill_' + Date.now()
+            
+            // 模拟微信分享
+            uni.showLoading({
+              title: '正在分享到微信...'
+            })
+            
+            setTimeout(() => {
+              uni.hideLoading()
+              uni.showToast({
+                title: '分享到微信成功，请提醒老板确认',
+                icon: 'success'
+              })
+              
+              // 模拟老板确认流程
+              setTimeout(() => {
+                this.simulateBossConfirmation(billId, billDetails)
+              }, 3000)
+            }, 1000)
+          }
+        }
+      })
+    },
+    
+    // 生成账单详情
+    generateBillDetails() {
+      // 模拟按款号和工序分组的账单数据
+      const billData = {
+        styles: [
+          {
+            styleNumber: 'ST123',
+            processes: [
+              {
+                processName: '车工',
+                totalQuantity: 120,
+                unitPrice: 15,
+                subtotal: 1800
+              },
+              {
+                processName: '熨烫',
+                totalQuantity: 120,
+                unitPrice: 8,
+                subtotal: 960
+              }
+            ],
+            styleTotal: 2760
+          },
+          {
+            styleNumber: 'ST456',
+            processes: [
+              {
+                processName: '车工',
+                totalQuantity: 80,
+                unitPrice: 18,
+                subtotal: 1440
+              },
+              {
+                processName: '包装',
+                totalQuantity: 80,
+                unitPrice: 6,
+                subtotal: 480
+              }
+            ],
+            styleTotal: 1920
+          }
+        ],
+        totalAmount: 4680
+      }
+      return billData
+    },
+    // 模拟老板确认
+    simulateBossConfirmation(billId, billDetails) {
+      // 生成账单详情文本
+      let billText = '⚠️ 重要提醒：本确认仅认工单事实，不做最终薪资结算依据\n\n'
+      
+      // 添加款号和工序详情
+      billDetails.styles.forEach((style, index) => {
+        billText += `款号 ${style.styleNumber}\n`
+        style.processes.forEach((process, processIndex) => {
+          billText += `  工序${processIndex + 1}: ${process.processName}\n`
+          billText += `    总数量: ${process.totalQuantity}\n`
+          billText += `    单价: ¥${process.unitPrice}\n`
+          billText += `    小计: ¥${process.subtotal}\n`
+        })
+        billText += `  该款总价: ¥${style.styleTotal}\n\n`
+      })
+      
+      // 添加总金额
+      billText += `整个账单总价: ¥${billDetails.totalAmount}\n\n`
+      
+      // 添加操作说明
+      billText += '请选择操作：\n\n'
+      billText += '【确认账单】：大差不差点确认，最终发薪数线下说了算，无任何法律责任\n'
+      billText += '【驳回账单】：数量不对直接驳回，无需解释原因，线下核对后让工人重发即可\n\n'
+      billText += '无需下载APP、无需注册登录，点确认仅帮工人完成记账对账，无任何后续绑定成本\n\n'
+      billText += '💡 推荐：下载衣起赚APP，查看每日详情并进行筛选\n'
+      billText += '下载链接：https://www.yiqizhuan.com/download\n'
+      billText += '安装后登录即可查看完整账单记录，支持按日期、款号、工序等多维度筛选'
+      
+      // 模拟老板审核界面 - 只有确认和驳回两个按钮，添加免责提醒
+      uni.showModal({
+        title: '账单审核',
+        content: billText,
+        confirmText: '确认账单',
+        cancelText: '驳回账单',
+        success: (res) => {
+          if (res.confirm) {
+            // 老板确认
+            this.confirmBill(billId)
+          } else if (res.cancel) {
+            // 老板驳回
+            this.rejectBill(billId)
+          }
+        }
+      })
+    },
+    // 确认账单
+    confirmBill(billId) {
+      // 显示确认通知
+      uni.showModal({
+        title: '账单已确认',
+        content: '✅ 账单确认成功\n\n再次提醒：本次确认仅为工单事实知晓，最终薪资结算以您和工人线下核对为准，平台不介入任何纠纷\n\n【可选轻量引导，非强制】：入驻衣起赚APP，可免费使用班组批量对账、工人管理功能，一键核对全组工单总量，省一半对账时间\n\n已自动同步到您的个人技能档案',
+        confirmText: '查看档案',
+        cancelText: '确定',
+        success: (modalRes) => {
+          if (modalRes.confirm) {
+            // 跳转到技能档案页面
+            uni.navigateTo({
+              url: './skill-profile'
+            })
+          }
+        }
+      })
+      
+      // 保存确认状态到通知
+      const notifications = uni.getStorageSync('notifications') || []
+      notifications.push({
+        id: Date.now(),
+        type: 'bill_confirmation',
+        title: '账单确认通知',
+        content: '老板已确认您的账单，线上确认仅确认工单真实性，最终发薪以线下统计为准',
+        time: new Date().toISOString(),
+        read: false
+      })
+      uni.setStorageSync('notifications', notifications)
+    },
+    // 驳回账单
+    rejectBill(billId) {
+      // 显示驳回通知
+      uni.showModal({
+        title: '账单已驳回',
+        content: '✅ 账单已驳回\n\n请您线下和工人核对好数量后，让工人修改账单重新转发即可，无任何操作限制',
+        confirmText: '确定',
+        showCancel: false
+      })
+      
+      // 保存驳回状态到通知
+      const notifications = uni.getStorageSync('notifications') || []
+      notifications.push({
+        id: Date.now(),
+        type: 'bill_rejection',
+        title: '账单驳回通知',
+        content: '老板已驳回您的账单，请与组长线下核对数量后重新提交',
+        time: new Date().toISOString(),
+        read: false
+      })
+      uni.setStorageSync('notifications', notifications)
+    },
+    
+    // 发起对账相关方法
+    closeReconciliationModal() {
+      this.showReconciliationModal = false
+      this.selectedStyle = ''
+      this.selectedProcess = ''
+      this.showStyleDropdown = false
+      this.showProcessDropdown = false
+    },
+    
+    getYearRange() {
+      const currentYear = new Date().getFullYear()
+      const years = []
+      for (let i = currentYear - 2; i <= currentYear + 2; i++) {
+        years.push(i.toString())
+      }
+      return years
+    },
+    
+    getMonthRange() {
+      const months = []
+      for (let i = 1; i <= 12; i++) {
+        months.push(i.toString())
+      }
+      return months
+    },
+    
+    updateDateRange() {
+      const { year, month } = this.reconciliationData
+      const startDate = `${year}-${month.toString().padStart(2, '0')}-05`
+      const endDate = `${year}-${month.toString().padStart(2, '0')}-19`
+      this.reconciliationData.startDate = startDate
+      this.reconciliationData.endDate = endDate
+    },
+    
+    toggleStyleDropdown() {
+      this.showStyleDropdown = !this.showStyleDropdown
+      this.showProcessDropdown = false
+    },
+    
+    toggleProcessDropdown() {
+      if (this.selectedStyle) {
+        this.showProcessDropdown = !this.showProcessDropdown
+        this.showStyleDropdown = false
+      }
+    },
+    
+    selectStyle(style) {
+      this.selectedStyle = style
+      this.selectedProcess = ''
+      this.showStyleDropdown = false
+    },
+    
+    selectProcess(process) {
+      this.selectedProcess = process.processName
+      this.showProcessDropdown = false
+    },
+    
+    getProcessesByStyle(style) {
+      return this.styleProcessMap[style] || []
+    },
+    
+    addStyleProcess() {
+      if (this.selectedStyle && this.selectedProcess) {
+        // 检查是否已存在相同的款号和工序组合
+        const exists = this.reconciliationData.selectedStyles.some(item => 
+          item.style === this.selectedStyle && item.process === this.selectedProcess
+        )
+        
+        if (!exists) {
+          this.reconciliationData.selectedStyles.push({
+            style: this.selectedStyle,
+            process: this.selectedProcess
+          })
+        }
+        
+        // 重置选择
+        this.selectedStyle = ''
+        this.selectedProcess = ''
+      }
+    },
+    
+    removeStyleProcess(index) {
+      this.reconciliationData.selectedStyles.splice(index, 1)
+    },
+    
+    submitReconciliation() {
+      if (!this.reconciliationData.startDate || !this.reconciliationData.endDate) {
+        uni.showToast({
+          title: '请选择对账日期范围',
+          icon: 'none'
+        })
+        return
+      }
+      
+      if (this.reconciliationData.selectedStyles.length === 0) {
+        uni.showToast({
+          title: '请至少选择一个款号和工序',
+          icon: 'none'
+        })
+        return
+      }
+      
+      // 模拟对账提交
+      uni.showLoading({
+        title: '正在发起对账...'
+      })
+      
+      setTimeout(() => {
+        uni.hideLoading()
+        uni.showToast({
+          title: '对账已发起',
+          icon: 'success'
+        })
+        this.closeReconciliationModal()
       }, 1500)
     }
   }
@@ -523,6 +970,55 @@ export default {
   color: #999;
 }
 
+/* 微信分享区 */
+.share-section {
+  background: #f5fafe;
+  border-radius: 16rpx;
+  padding: 30rpx;
+  margin-bottom: 30rpx;
+  text-align: center;
+}
+
+.share-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 10rpx;
+  display: block;
+}
+
+.share-desc {
+  font-size: 22rpx;
+  color: #666;
+  margin-bottom: 20rpx;
+  display: block;
+  line-height: 1.4;
+}
+
+.share-btn {
+  background: linear-gradient(135deg, #1677ff 0%, #4096ff 100%);
+  color: #fff;
+  border: none;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  font-size: 26rpx;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  margin: 0 auto;
+  min-width: 200rpx;
+}
+
+.share-icon {
+  font-size: 32rpx;
+}
+
+.share-text {
+  font-size: 26rpx;
+}
+
 /* 对账结算区 */
 .reconciliation-info {
   display: grid;
@@ -555,5 +1051,228 @@ export default {
 
 .info-value.pending {
   color: #faad14;
+}
+
+/* 发起对账弹窗样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modal-content {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  width: 85%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+  text-align: center;
+  margin-bottom: 30rpx;
+}
+
+.form-group {
+  margin-bottom: 30rpx;
+}
+
+.form-label {
+  font-size: 26rpx;
+  color: #333;
+  margin-bottom: 15rpx;
+  display: block;
+}
+
+.month-picker {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.year-picker, .month-picker {
+  flex: 1;
+  background: #f8f9fa;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  text-align: center;
+}
+
+.picker-text {
+  font-size: 26rpx;
+  color: #333;
+}
+
+.picker-separator {
+  font-size: 26rpx;
+  color: #666;
+}
+
+.date-range {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.date-input {
+  flex: 1;
+  background: #f8f9fa;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  font-size: 24rpx;
+  color: #333;
+}
+
+.date-separator {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.date-hint {
+  font-size: 20rpx;
+  color: #999;
+  margin-top: 10rpx;
+  display: block;
+}
+
+.dropdown-container {
+  position: relative;
+  margin-bottom: 20rpx;
+}
+
+.form-input {
+  width: 100%;
+  background: #f8f9fa;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  font-size: 24rpx;
+  color: #333;
+  border: 1rpx solid #e8e8e8;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1rpx solid #e8e8e8;
+  border-radius: 12rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.1);
+  max-height: 300rpx;
+  overflow-y: auto;
+  z-index: 9999;
+  margin-top: 10rpx;
+}
+
+.dropdown-item {
+  padding: 20rpx;
+  font-size: 24rpx;
+  color: #333;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.dropdown-item:active {
+  background: #f8f9fa;
+}
+
+.add-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  background: #1677ff;
+  color: #fff;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  margin-top: 10rpx;
+}
+
+.add-icon {
+  font-size: 28rpx;
+  font-weight: bold;
+}
+
+.add-text {
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+.selected-list {
+  background: #f8f9fa;
+  border-radius: 12rpx;
+  padding: 20rpx;
+}
+
+.selected-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15rpx 0;
+  border-bottom: 1rpx solid #e8e8e8;
+}
+
+.selected-item:last-child {
+  border-bottom: none;
+}
+
+.selected-style {
+  font-size: 24rpx;
+  color: #333;
+  font-weight: 600;
+}
+
+.selected-process {
+  font-size: 22rpx;
+  color: #666;
+  flex: 1;
+  margin-left: 20rpx;
+}
+
+.remove-icon {
+  font-size: 28rpx;
+  color: #ff4d4f;
+  font-weight: bold;
+  padding: 10rpx;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 40rpx;
+}
+
+.modal-btn {
+  flex: 1;
+  padding: 20rpx;
+  border-radius: 12rpx;
+  font-size: 26rpx;
+  font-weight: 600;
+  border: none;
+}
+
+.modal-btn.secondary {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.modal-btn.primary {
+  background: #1677ff;
+  color: #fff;
 }
 </style>

@@ -60,6 +60,8 @@
         <input type="number" v-model.number="userInfo.expectedWage" placeholder="请输入期望工价" class="form-input" />
       </view>
       
+
+      
       <!-- 我的技能工序 -->
       <view class="form-item">
         <text class="form-label">我的技能工序</text>
@@ -660,4 +662,6 @@ export default {
   font-weight: bold;
   cursor: pointer;
 }
+
+
 </style>

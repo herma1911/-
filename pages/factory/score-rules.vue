@@ -22,7 +22,7 @@
 </template>
 
 <script>
-import { getScoreRulesText } from '../../utils/factory-score.js'
+import factoryLevelSystem from '../../utils/factory-level-system.js'
 
 export default {
   data() {
@@ -53,10 +53,65 @@ export default {
     }
   },
   onLoad() {
-    this.scoreRulesText = getScoreRulesText()
+    this.scoreRulesText = this.getLevelRulesText()
     this.getFactoryInfo()
   },
   methods: {
+    getLevelRulesText() {
+      let rulesText = '工厂信用等级体系\n\n'
+      
+      // 添加等级规则
+      rulesText += '等级评定权重：\n'
+      rulesText += '闭环发薪45% > 工人评价25% > 拉新贡献15% > 平台活跃10% > 合规经营5%\n\n'
+      
+      // 添加各等级规则
+      Object.keys(factoryLevelSystem.factoryLevels).forEach(level => {
+        const levelInfo = factoryLevelSystem.factoryLevels[level]
+        rulesText += `${levelInfo.name}\n`
+        rulesText += '核心准入门槛：\n'
+        
+        if (level === 'S') {
+          rulesText += '1. 累计闭环发薪≥1000次，100%入职工人完成平台收薪确认，连续12个月无发薪投诉\n'
+          rulesText += '2. 工人综合好评率≥95%\n'
+          rulesText += '3. 累计有效拉新≥5家工厂/100名工人\n'
+          rulesText += '4. 月均连续登录≥28天\n'
+        } else if (level === 'A') {
+          rulesText += '1. 累计闭环发薪≥200次，95%以上入职工人完成平台收薪确认，连续6个月无发薪投诉\n'
+          rulesText += '2. 工人综合好评率≥90%\n'
+          rulesText += '3. 累计有效拉新≥2家工厂/30名工人\n'
+          rulesText += '4. 月均连续登录≥22天\n'
+        } else if (level === 'B') {
+          rulesText += '1. 累计闭环发薪≥50次，90%以上入职工人完成平台收薪确认，连续3个月无发薪投诉\n'
+          rulesText += '2. 工人综合好评率≥85%\n'
+          rulesText += '3. 月均连续登录≥15天\n'
+        } else if (level === 'C') {
+          rulesText += '新入驻工厂，或累计闭环发薪<50次，连续合规发薪<3个月\n'
+        } else if (level === 'D') {
+          rulesText += '闭环发薪占比<80%/工人好评率<80%/连续60天未登录/有虚假招聘、恶意欠薪等违规记录\n'
+        }
+        
+        rulesText += '核心权益：\n'
+        levelInfo.benefits.forEach((benefit, index) => {
+          rulesText += `${index + 1}. ${benefit}\n`
+        })
+        
+        rulesText += '\n'
+      })
+      
+      // 添加B级快速认证规则
+      rulesText += 'B级快速认证绿色通道（仅限C级新工厂申请，仅1次机会）\n'
+      rulesText += '满足以下任意1条，即可直接升级为B级工厂：\n'
+      rulesText += '1. 拉新达标通道：累计有效拉新≥15名工人 / ≥2家工厂，系统自动核验达标后直接升级\n'
+      rulesText += '2. 海报推广通道：使用平台官方招工海报模板，完成以下任意1项推广，提交材料审核通过后升级：\n'
+      rulesText += '   - 线下：海报张贴在厂门口醒目位置，连续7天，提交3张不同日期的实拍图\n'
+      rulesText += '   - 线上：海报发送至≥5个200人以上的服装/招工群，提交带群名、发送时间的截图\n'
+      rulesText += '\n'
+      rulesText += '补充规则\n'
+      rulesText += '- 升级后需在30天内完成≥5笔有效闭环发薪，否则自动降回C级，收回所有权益\n'
+      rulesText += '- 发现P图造假、虚假拉新等违规行为，直接取消B级认证，降为D级，6个月内不可再次申请\n'
+      
+      return rulesText
+    },
     getFactoryInfo() {
       const factoryInfo = uni.getStorageSync('factoryInfo')
       if (factoryInfo) {

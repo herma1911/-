@@ -12,7 +12,7 @@
           <input type="text" v-model="currentStyleNumber" @input="onStyleNumberChange" placeholder="请输入款号" class="form-input" />
         </view>
         <view class="form-item">
-          <text class="form-label">厂长总价：</text>
+          <text class="form-label">可打工价：</text>
           <text class="form-value">¥{{adminTotalPrice}}/件</text>
         </view>
         
@@ -41,6 +41,18 @@
         <!-- 添加工序按钮 -->
         <button class="add-item-btn" @click="addWageItemInput">+ 添加工序</button>
         
+        <!-- 导入导出功能 -->
+        <view class="import-export-section">
+          <view class="section-title">批量导入</view>
+          <view class="import-export-buttons">
+            <button class="import-btn" @click="downloadTemplate">下载模板</button>
+            <button class="export-btn" @click="uploadFile">上传导入</button>
+          </view>
+          <view class="import-tip">
+            <text>必填字段：款号、工序1、单价（单位：元）、工序2、工序3...</text>
+          </view>
+        </view>
+        
         <!-- 提交按钮 -->
         <button class="add-btn" @click="addWageItems">添加工价</button>
       </view>
@@ -66,6 +78,10 @@
               </view>
               <view class="wage-remark" v-if="process.remark">
                 <text>{{process.remark}}</text>
+              </view>
+              <view class="wage-actions">
+                <button class="edit-btn" @click="editWageItem(process.originalIndex)">修改</button>
+                <button class="delete-btn" @click="deleteWageItem(process.originalIndex)">删除</button>
               </view>
             </view>
           </view>
@@ -110,6 +126,8 @@
 </template>
 
 <script>
+import { addToCandidatePool } from '../../utils/process-word-library.js'
+
 export default {
   data() {
     return {
@@ -120,7 +138,7 @@ export default {
           unitPrice: 0
         }
       ],
-      // 厂长总价
+      // 可打工价
       adminTotalPrice: 0,
       wageItems: [],
       showEditModal: false,
@@ -224,7 +242,7 @@ export default {
       uni.setStorageSync('wageItems', this.wageItems)
     },
     onStyleNumberChange() {
-      // 当款号变化时，从本地存储加载对应的车缝总价作为厂长总价
+      // 当款号变化时，从本地存储加载对应的车缝总价作为可打工价
       if (this.currentStyleNumber) {
         const sewingTotalPrices = uni.getStorageSync('sewingTotalPrices') || {}
         if (sewingTotalPrices[this.currentStyleNumber]) {
@@ -296,62 +314,85 @@ export default {
       // 计算整款总价
       const totalPrice = validWageItems.reduce((sum, item) => sum + item.unitPrice, 0)
       
-      // 显示整款总价，确认提交
+      // 检查是否超过可打工价
+      if (this.adminTotalPrice > 0 && totalPrice > this.adminTotalPrice) {
+        uni.showModal({
+          title: '工价总和超过可打工价',
+          content: `整款总价：¥${totalPrice.toFixed(2)}/件\n可打工价：¥${this.adminTotalPrice.toFixed(2)}/件\n\n是否继续提交？`,
+          confirmText: '继续提交',
+          cancelText: '取消',
+          success: (res) => {
+            if (res.confirm) {
+              this.submitWageItems(validWageItems, totalPrice)
+            }
+          }
+        })
+      } else {
+        // 显示整款总价，确认提交
+        uni.showModal({
+          title: '确认提交',
+          content: `款号：${this.currentStyleNumber}\n\n共 ${validWageItems.length} 个工序\n整款总价：¥${totalPrice.toFixed(2)}/件\n\n确认提交并生成邀请码？`,
+          confirmText: '确认提交',
+          cancelText: '取消',
+          success: (res) => {
+            if (res.confirm) {
+              this.submitWageItems(validWageItems, totalPrice)
+            }
+          }
+        })
+      }
+    },
+    
+    // 提交工价数据
+    submitWageItems(validWageItems, totalPrice) {
+      // 生成邀请码（使用款号的前4位+随机4位数字）
+      const randomPart = Math.floor(1000 + Math.random() * 9000)
+      const inviteCode = this.currentStyleNumber.substring(0, 4).toUpperCase() + randomPart
+      
+      // 批量添加工价
+      validWageItems.forEach(item => {
+        // 将工序名添加到词库候选池
+        addToCandidatePool(item.processName)
+        
+        this.wageItems.push({
+          styleNumber: this.currentStyleNumber,
+          processName: item.processName,
+          unitPrice: item.unitPrice,
+          inviteCode: inviteCode
+        })
+      })
+      
+      // 保存到本地存储
+      this.saveWageItems()
+      
+      // 生成换款号通知
+      this.generateStyleChangeNotification(this.currentStyleNumber)
+      
+      // 重置表单
+      this.newWageItems = [
+        {
+          processName: '',
+          unitPrice: 0,
+          remark: ''
+        }
+      ]
+      
+      // 显示邀请码
       uni.showModal({
-        title: '确认提交',
-        content: `款号：${this.currentStyleNumber}\n\n共 ${validWageItems.length} 个工序\n整款总价：¥${totalPrice.toFixed(2)}/件\n\n确认提交并生成邀请码？`,
-        confirmText: '确认提交',
-        cancelText: '取消',
+        title: '工价添加成功',
+        content: `邀请码：${inviteCode}\n\n共添加了 ${validWageItems.length} 个工序工价\n整款总价：¥${totalPrice.toFixed(2)}/件\n\n请将邀请码分享给工人，工人输入邀请码后即可关联价格。`,
+        confirmText: '复制邀请码',
+        cancelText: '确定',
         success: (res) => {
           if (res.confirm) {
-            // 生成邀请码（使用款号的前4位+随机4位数字）
-            const randomPart = Math.floor(1000 + Math.random() * 9000)
-            const inviteCode = this.currentStyleNumber.substring(0, 4).toUpperCase() + randomPart
-            
-            // 批量添加工价
-            validWageItems.forEach(item => {
-              this.wageItems.push({
-                styleNumber: this.currentStyleNumber,
-                processName: item.processName,
-                unitPrice: item.unitPrice,
-                inviteCode: inviteCode
-              })
-            })
-            
-            // 保存到本地存储
-            this.saveWageItems()
-            
-            // 生成换款号通知
-            this.generateStyleChangeNotification(this.currentStyleNumber)
-            
-            // 重置表单
-            this.newWageItems = [
-              {
-                processName: '',
-                unitPrice: 0,
-                remark: ''
-              }
-            ]
-            
-            // 显示邀请码
-            uni.showModal({
-              title: '工价添加成功',
-              content: `邀请码：${inviteCode}\n\n共添加了 ${validWageItems.length} 个工序工价\n整款总价：¥${totalPrice.toFixed(2)}/件\n\n请将邀请码分享给工人，工人输入邀请码后即可关联价格。`,
-              confirmText: '复制邀请码',
-              cancelText: '确定',
-              success: (res) => {
-                if (res.confirm) {
-                  // 复制邀请码到剪贴板
-                  uni.setClipboardData({
-                    data: inviteCode,
-                    success: () => {
-                      uni.showToast({
-                        title: '邀请码已复制',
-                        icon: 'success'
-                      })
-                    }
-                  })
-                }
+            // 复制邀请码到剪贴板
+            uni.setClipboardData({
+              data: inviteCode,
+              success: () => {
+                uni.showToast({
+                  title: '邀请码已复制',
+                  icon: 'success'
+                })
               }
             })
           }
@@ -488,17 +529,89 @@ export default {
     editStyleGroup(styleGroup) {
       // 填充款号
       this.currentStyleNumber = styleGroup.styleNumber
-      // 填充工序
+      // 清空并填充工序
       this.newWageItems = styleGroup.processes.map(process => ({
         processName: process.processName,
         unitPrice: process.unitPrice
       }))
-      // 触发款号变化，加载厂长总价
+      // 触发款号变化，加载可打工价
       this.onStyleNumberChange()
       // 显示提示
       uni.showToast({
         title: '已加载款号工序，可直接修改',
         icon: 'success'
+      })
+    },
+    
+    // 下载模板
+    downloadTemplate() {
+      // 创建CSV内容
+      const csvContent = `款号,工序1,单价（单位：元）,工序2,单价（单位：元）,工序3,单价（单位：元）\n,车缝,10.5,熨烫,5.5,包装,3.0`
+      
+      // 创建Blob对象
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      
+      // 创建下载链接
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      link.setAttribute('download', '工价模板.csv')
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      uni.showToast({
+        title: '模板下载成功',
+        icon: 'success'
+      })
+    },
+    
+    // 上传文件
+    uploadFile() {
+      uni.chooseFile({
+        count: 1,
+        extension: ['.csv', '.xlsx', '.xls'],
+        success: (res) => {
+          const tempFilePaths = res.tempFilePaths
+          uni.showToast({
+            title: '文件选择成功，正在解析...',
+            icon: 'loading'
+          })
+          
+          // 模拟文件解析过程
+          setTimeout(() => {
+            // 这里应该是实际的文件解析逻辑
+            // 为了演示，我们模拟解析结果
+            const parsedData = [
+              { styleNumber: 'A001', processes: [
+                { processName: '车缝', unitPrice: 10.5 },
+                { processName: '熨烫', unitPrice: 5.5 },
+                { processName: '包装', unitPrice: 3.0 }
+              ]}
+            ]
+            
+            // 填充解析数据到表单
+            if (parsedData.length > 0) {
+              const firstItem = parsedData[0]
+              this.currentStyleNumber = firstItem.styleNumber
+              this.newWageItems = firstItem.processes
+              this.onStyleNumberChange()
+              
+              uni.showToast({
+                title: '文件导入成功',
+                icon: 'success'
+              })
+            }
+          }, 1000)
+        },
+        fail: (err) => {
+          console.log('选择文件失败', err)
+          uni.showToast({
+            title: '选择文件失败',
+            icon: 'none'
+          })
+        }
       })
     }
   }
@@ -827,5 +940,46 @@ export default {
   color: #fff;
   font-size: 24rpx;
   border-radius: 10rpx;
+}
+
+/* 导入导出功能样式 */
+.import-export-section {
+  margin-top: 30rpx;
+  padding: 20rpx;
+  background-color: #f0f8ff;
+  border-radius: 10rpx;
+  border: 1rpx solid #b3d9ff;
+}
+
+.import-export-buttons {
+  display: flex;
+  gap: 15rpx;
+  margin: 20rpx 0;
+}
+
+.import-btn,
+.export-btn {
+  flex: 1;
+  height: 60rpx;
+  font-size: 22rpx;
+  border-radius: 10rpx;
+}
+
+.import-btn {
+  background-color: #4A90E2;
+  color: #fff;
+}
+
+.export-btn {
+  background-color: #52c41a;
+  color: #fff;
+}
+
+.import-tip {
+  font-size: 18rpx;
+  color: #666;
+  line-height: 1.4;
+  text-align: center;
+  margin-top: 10rpx;
 }
 </style>

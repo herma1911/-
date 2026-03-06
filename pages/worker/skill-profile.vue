@@ -85,6 +85,82 @@
         </view>
       </view>
       
+      <!-- 计薪模式与稳定性数据 -->
+      <view class="wage-mode-section">
+        <text class="section-subtitle">计薪模式与稳定性</text>
+        <view class="wage-mode-stats">
+          <view class="wage-mode-item">
+            <text class="stat-label">主计薪模式</text>
+            <text class="stat-value">{{profile.wageMode === 'piecework' ? '计件' : profile.wageMode === 'hourly' ? '计时' : '未设置'}}</text>
+          </view>
+          <view class="wage-mode-item" v-if="profile.wageMode === 'hourly'">
+            <text class="stat-label">岗位类型</text>
+            <text class="stat-value">{{profile.hourlyJobType || '未设置'}}</text>
+          </view>
+        </view>
+        
+        <!-- 稳定性数据 -->
+        <view class="stability-section">
+          <text class="sub-section-title">稳定性数据</text>
+          <view class="stability-stats">
+            <view class="stability-stat-item">
+              <text class="stability-label">连续记工天数</text>
+              <text class="stability-value">{{profile.stabilityData.continuousWorkDays}}天</text>
+              <text class="stability-tag" :class="profile.stabilityData.continuousWorkDays >= 30 ? 'high-stability' : profile.stabilityData.continuousWorkDays <= 7 ? 'low-stability' : 'medium-stability'">
+                {{profile.stabilityData.continuousWorkDays >= 30 ? '高稳定' : profile.stabilityData.continuousWorkDays <= 7 ? '待观察' : '稳定'}}
+              </text>
+            </view>
+            <view class="stability-stat-item">
+              <text class="stability-label">月度出勤率</text>
+              <text class="stability-value">{{profile.stabilityData.monthlyAttendanceRate}}%</text>
+              <text class="stability-tag" :class="profile.stabilityData.monthlyAttendanceRate >= 90 ? 'high-stability' : profile.stabilityData.monthlyAttendanceRate < 60 ? 'low-stability' : 'medium-stability'">
+                {{profile.stabilityData.monthlyAttendanceRate >= 90 ? '全勤标杆' : profile.stabilityData.monthlyAttendanceRate < 60 ? '出勤不稳定' : '出勤稳定'}}
+              </text>
+            </view>
+            <view class="stability-stat-item">
+              <text class="stability-label">岗位留存时长</text>
+              <text class="stability-value">{{profile.stabilityData.jobRetentionDuration}}个月</text>
+              <text class="stability-tag" :class="profile.stabilityData.jobRetentionDuration >= 3 ? 'high-stability' : profile.stabilityData.jobRetentionDuration < 1 ? 'low-stability' : 'medium-stability'">
+                {{profile.stabilityData.jobRetentionDuration >= 3 ? '长期稳定' : profile.stabilityData.jobRetentionDuration < 1 ? '高流动性' : '稳定'}}
+              </text>
+            </view>
+            <view class="stability-stat-item">
+              <text class="stability-label">工时稳定性</text>
+              <text class="stability-value">{{profile.stabilityData.workHourStability}}%</text>
+              <text class="stability-tag" :class="profile.stabilityData.workHourStability >= 80 ? 'high-stability' : profile.stabilityData.workHourStability < 60 ? 'low-stability' : 'medium-stability'">
+                {{profile.stabilityData.workHourStability >= 80 ? '工时稳定' : profile.stabilityData.workHourStability < 60 ? '工时波动大' : '基本稳定'}}
+              </text>
+            </view>
+          </view>
+        </view>
+      </view>
+      
+      <!-- 简历背书 -->
+      <view class="resume-endorsement-section">
+        <text class="section-subtitle">简历背书</text>
+        <view class="endorsement-content">
+          <!-- 稳定性标签 -->
+          <view class="stability-tags">
+            <text class="tag-label">稳定性标签：</text>
+            <view class="tag-list">
+              <text v-for="(tag, index) in profile.resumeEndorsement.stabilityTags" :key="index" class="stability-tag high-stability">
+                {{tag}}
+              </text>
+            </view>
+          </view>
+          
+          <!-- 工厂评价 -->
+          <view class="factory-endorsement">
+            <text class="endorsement-label">工厂评价：</text>
+            <text class="endorsement-value">
+              合作{{profile.resumeEndorsement.cooperativeFactoryCount}}家工厂，综合评分{{profile.resumeEndorsement.factoryEvaluationScore}}分，
+              {{profile.resumeEndorsement.highFrequencyPraiseTags.length > 0 ? profile.resumeEndorsement.highFrequencyPraiseTags.join('、') : '暂无高频好评'}}，
+              合作时长{{profile.resumeEndorsement.cooperativeDuration}}个月
+            </text>
+          </view>
+        </view>
+      </view>
+      
       <!-- 工资战绩 -->
       <view class="salary-section">
         <text class="section-subtitle">工资战绩</text>
@@ -183,6 +259,57 @@
             </view>
           </picker>
         </view>
+        <!-- 计薪模式选择 -->
+        <view class="form-item">
+          <text class="form-label">主计薪模式</text>
+          <picker :value="wageModeIndex" :range="wageModes.map(item => item.label)" @change="wageModeChange">
+            <view class="picker">
+              {{ profile.wageMode ? wageModes.find(item => item.value === profile.wageMode).label : '请选择' }}
+            </view>
+          </picker>
+        </view>
+        <!-- 计时工人岗位类型选择 -->
+        <view v-if="profile.wageMode === 'hourly'" class="form-item">
+          <text class="form-label">岗位类型</text>
+          <picker :value="hourlyJobTypeIndex" :range="getHourlyJobTypeOptions()" @change="hourlyJobTypeChange">
+            <view class="picker">
+              {{ profile.hourlyJobType || '请选择' }}
+            </view>
+          </picker>
+        </view>
+      </view>
+      
+      <!-- 工时偏好设置（仅计时工人） -->
+      <view v-if="profile.wageMode === 'hourly'" class="form-section">
+        <text class="section-title">工时偏好</text>
+        <view class="form-item">
+          <text class="form-label">工时制度</text>
+          <picker :value="workHourSystemIndex" :range="workHourSystems" @change="workHourSystemChange">
+            <view class="picker">
+              {{ profile.workHourPreference.workHourSystem || '请选择' }}
+            </view>
+          </picker>
+        </view>
+        <view class="form-item">
+          <text class="form-label">用工周期</text>
+          <picker :value="employmentCycleIndex" :range="employmentCycles" @change="employmentCycleChange">
+            <view class="picker">
+              {{ profile.workHourPreference.employmentCycle || '请选择' }}
+            </view>
+          </picker>
+        </view>
+        <view class="form-item">
+          <text class="form-label">固定工时</text>
+          <picker :value="fixedHoursIndex" :range="fixedHoursOptions" @change="fixedHoursChange">
+            <view class="picker">
+              {{ profile.workHourPreference.fixedHours || '请选择' }}
+            </view>
+          </picker>
+        </view>
+        <view class="form-item checkbox-item">
+          <checkbox :checked="profile.workHourPreference.acceptOvertime" @change="(e) => profile.workHourPreference.acceptOvertime = e.detail.value" />
+          <text class="checkbox-label">是否接受加班</text>
+        </view>
       </view>
       
       <!-- 技能信息 -->
@@ -200,6 +327,9 @@
             </view>
           </view>
         </view>
+        
+        <!-- 从GSD数据库选择技能 -->
+        <button class="add-skill-btn" @click="openGsdModal">从GSD数据库选择技能</button>
         
         <!-- 自定义技能描述 -->
         <text class="section-subtitle">技能描述（手动填写详细信息）</text>
@@ -265,7 +395,7 @@
         <!-- 全国可跑选项 -->
         <view class="form-item checkbox-item">
           <checkbox :checked="profile.nationwideAvailable" @change="(e) => profile.nationwideAvailable = e.detail.value" />
-          <text class="checkbox-label">全国可跑（VIP专属）</text>
+          <text class="checkbox-label">全国可跑</text>
         </view>
         
         <!-- 可到岗时间 -->
@@ -307,6 +437,36 @@
       </view>
     </view>
     
+    <!-- GSD工序选择模态框 -->
+    <view v-if="showGsdModal" class="gsd-modal-overlay" @click="closeGsdModal">
+      <view class="gsd-modal" @click.stop>
+        <view class="gsd-modal-header">
+          <text class="gsd-modal-title">选择GSD标准工序</text>
+          <text class="gsd-modal-close" @click="closeGsdModal">×</text>
+        </view>
+        <view class="gsd-modal-content">
+          <!-- 搜索框 -->
+          <view class="gsd-search">
+            <input type="text" v-model="searchKeyword" placeholder="搜索工序名称" class="gsd-search-input" />
+            <button class="gsd-search-btn" @click="searchGsdProcesses">搜索</button>
+          </view>
+          
+          <!-- 工序列表 -->
+          <view class="gsd-process-list">
+            <view v-for="process in filteredGsdProcesses" :key="process.id" class="gsd-process-item" @click="selectGsdProcess(process)">
+              <text class="gsd-process-name">{{process.name}}</text>
+              <text class="gsd-process-standard">{{process.standardName}}</text>
+              <text class="gsd-process-desc">{{process.description}}</text>
+              <text class="gsd-process-level">技能等级：{{process.skillLevel}}</text>
+            </view>
+            <view v-if="filteredGsdProcesses.length === 0" class="gsd-empty">
+              <text class="gsd-empty-text">未找到相关工序</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+    
     <!-- 实用工具 -->
     <view class="utility-section">
       <view class="utility-buttons">
@@ -332,6 +492,8 @@
 </template>
 
 <script>
+import { getGsdProcesses, searchGsdProcesses, getProcessByName } from '../../utils/gsd-database.js'
+
 export default {
   data() {
     return {
@@ -359,7 +521,36 @@ export default {
         nationwideAvailable: false,
         availableTime: '',
         paymentPreferences: [],
-        specializedCategories: []
+        specializedCategories: [],
+        // 计薪模式相关
+        wageMode: '', // 主计薪模式：'piecework' 或 'hourly'
+        // 计时工人岗位类型
+        hourlyJobType: '',
+        // 工时偏好
+        workHourPreference: {
+          workHourSystem: '', // 工时制度：长白班/两班倒/三班倒
+          employmentCycle: '', // 用工周期：长期固定工/临时工/日结/周结/月结
+          fixedHours: '', // 固定工时：8小时/10小时/12小时
+          acceptOvertime: false // 是否接受加班
+        },
+        // 稳定性数据
+        stabilityData: {
+          continuousWorkDays: 0, // 连续记工天数
+          monthlyAttendanceRate: 0, // 月度出勤率
+          jobRetentionDuration: 0, // 岗位留存时长（月）
+          workHourStability: 0, // 工时稳定性
+          timelyTimekeeping: 0, // 记工及时性
+          postPaymentRetention: 0, // 发薪后留存率
+          ledgerCompleteness: 0 // 账本完整度
+        },
+        // 简历背书
+        resumeEndorsement: {
+          stabilityTags: [], // 稳定性标签
+          factoryEvaluationScore: 0, // 工厂综合评分
+          cooperativeFactoryCount: 0, // 合作工厂数量
+          highFrequencyPraiseTags: [], // 高频好评标签
+          cooperativeDuration: 0 // 合作时长（月）
+        }
       },
       customSkill: '', // 新增自定义技能输入
       typeIndex: 0,
@@ -386,6 +577,11 @@ export default {
         { name: '牛仔裤埋夹', levelIndex: 0 },
         { name: '羽绒服充绒', levelIndex: 0 }
       ],
+      // GSD数据库相关
+      gsdProcesses: [],
+      selectedCategory: '',
+      searchKeyword: '',
+      showGsdModal: false,
       // 工作意向标签数据
       regions: [
         { name: '广东广州' },
@@ -406,7 +602,22 @@ export default {
         { name: '江西于都' }
       ],
       paymentTypes: ['计件', '计时', '固定月薪'],
-      categories: ['羽绒服', '牛仔', '针织T恤', '女装', '童装', '卫衣', '泳装', '休闲裤', '连衣裙', '西装', '运动服', '内衣', '工装']
+      categories: ['羽绒服', '牛仔', '针织T恤', '女装', '童装', '卫衣', '泳装', '休闲裤', '连衣裙', '西装', '运动服', '内衣', '工装'],
+      // 计薪模式选项
+      wageModes: [
+        { value: 'piecework', label: '计件（按件算钱）' },
+        { value: 'hourly', label: '计时（按时算钱）' }
+      ],
+      // 计时工人岗位类型选项
+      hourlyJobTypes: [
+        { category: '生产辅助类', options: ['后整包装', '大烫/小烫', '服装质检', '裁床辅助', '锁边/杂工'] },
+        { category: '管理职能类', options: ['车间组长', '跟单员', '仓管员', '品控主管'] },
+        { category: '临时用工类', options: ['日结普工', '旺季临时工', '夜班替补'] }
+      ],
+      // 工时偏好选项
+      workHourSystems: ['长白班', '两班倒', '三班倒'],
+      employmentCycles: ['长期固定工', '临时工', '日结', '周结', '月结'],
+      fixedHoursOptions: ['8小时', '10小时', '12小时']
     }
   },
 
@@ -427,12 +638,48 @@ export default {
     totalLikes() {
       // 从本地存储获取总点赞数
       return uni.getStorageSync('likeCount') || 0
+    },
+    // 计薪模式索引
+    wageModeIndex() {
+      return this.wageModes.findIndex(item => item.value === this.profile.wageMode)
+    },
+    // 计时工人岗位类型索引
+    hourlyJobTypeIndex() {
+      const options = this.getHourlyJobTypeOptions()
+      return options.indexOf(this.profile.hourlyJobType)
+    },
+    // 工时制度索引
+    workHourSystemIndex() {
+      return this.workHourSystems.indexOf(this.profile.workHourPreference.workHourSystem)
+    },
+    // 用工周期索引
+    employmentCycleIndex() {
+      return this.employmentCycles.indexOf(this.profile.workHourPreference.employmentCycle)
+    },
+    // 固定工时索引
+    fixedHoursIndex() {
+      return this.fixedHoursOptions.indexOf(this.profile.workHourPreference.fixedHours)
+    },
+    // 过滤后的GSD工序列表
+    filteredGsdProcesses() {
+      if (this.searchKeyword) {
+        return searchGsdProcesses(this.searchKeyword)
+      }
+      return this.gsdProcesses
     }
   },
   onLoad() {
     this.loadProfile()
+    this.loadWageMode()
+    this.loadGsdProcesses()
   },
   methods: {
+    loadWageMode() {
+      const savedWageMode = uni.getStorageSync('wageMode')
+      if (savedWageMode) {
+        this.profile.wageMode = savedWageMode
+      }
+    },
     getReputationLevel(score) {
       if (!score) return '暂无评价'
       if (score >= 90) return '信誉极佳'
@@ -476,7 +723,36 @@ export default {
         nationwideAvailable: false,
         availableTime: '',
         paymentPreferences: [],
-        specializedCategories: []
+        specializedCategories: [],
+        // 计薪模式相关
+        wageMode: 'piecework', // 主计薪模式：'piecework' 或 'hourly'
+        // 计时工人岗位类型
+        hourlyJobType: '',
+        // 工时偏好
+        workHourPreference: {
+          workHourSystem: '', // 工时制度：长白班/两班倒/三班倒
+          employmentCycle: '', // 用工周期：长期固定工/临时工/日结/周结/月结
+          fixedHours: '', // 固定工时：8小时/10小时/12小时
+          acceptOvertime: false // 是否接受加班
+        },
+        // 稳定性数据
+        stabilityData: {
+          continuousWorkDays: 120, // 连续记工天数
+          monthlyAttendanceRate: 95, // 月度出勤率
+          jobRetentionDuration: 6, // 岗位留存时长（月）
+          workHourStability: 90, // 工时稳定性
+          timelyTimekeeping: 85, // 记工及时性
+          postPaymentRetention: 90, // 发薪后留存率
+          ledgerCompleteness: 95 // 账本完整度
+        },
+        // 简历背书
+        resumeEndorsement: {
+          stabilityTags: ['高稳定全勤标杆', '出勤稳定', '长期稳定'], // 稳定性标签
+          factoryEvaluationScore: 4.9, // 工厂综合评分
+          cooperativeFactoryCount: 6, // 合作工厂数量
+          highFrequencyPraiseTags: ['出勤稳定', '配合度高'], // 高频好评标签
+          cooperativeDuration: 18 // 合作时长（月）
+        }
       }
       // 保存示例数据到本地存储
       uni.setStorageSync('skillProfile', this.profile)
@@ -527,6 +803,50 @@ export default {
       }
       // 如果没有真实记录，保留示例数据
     },
+    // 加载GSD数据库工序数据
+    loadGsdProcesses() {
+      this.gsdProcesses = getGsdProcesses()
+    },
+    // 打开GSD工序选择模态框
+    openGsdModal() {
+      this.showGsdModal = true
+      this.searchKeyword = ''
+    },
+    // 关闭GSD工序选择模态框
+    closeGsdModal() {
+      this.showGsdModal = false
+    },
+    // 选择GSD工序
+    selectGsdProcess(process) {
+      // 检查技能是否已存在
+      const isExist = this.skills.some(skill => skill.name === process.name)
+      if (!isExist) {
+        // 添加到技能列表
+        this.skills.push({ name: process.name, levelIndex: 0 })
+      }
+      // 自动选中该技能
+      if (!this.profile.skills.includes(process.name)) {
+        // 限制技能数量最多5个
+        if (this.profile.skills.length >= 5) {
+          uni.showToast({
+            title: '技能最多选择5个',
+            icon: 'none'
+          })
+          this.closeGsdModal()
+          return
+        }
+        this.profile.skills.push(process.name)
+      }
+      uni.showToast({
+        title: '技能添加成功',
+        icon: 'success'
+      })
+      this.closeGsdModal()
+    },
+    // 搜索GSD工序
+    searchGsdProcesses() {
+      // 搜索逻辑已在computed的filteredGsdProcesses中处理
+    },
     saveProfile() {
       // 限制技能数量最多5个
       if (this.profile.skills.length > 5) {
@@ -538,6 +858,10 @@ export default {
       }
       
       uni.setStorageSync('skillProfile', this.profile)
+      // 保存计薪模式到本地存储，与首页保持同步
+      if (this.profile.wageMode) {
+        uni.setStorageSync('wageMode', this.profile.wageMode)
+      }
       uni.showToast({
         title: '保存成功',
         icon: 'success'
@@ -648,6 +972,48 @@ export default {
     },
     typeChange(e) {
       this.typeIndex = e.detail.value
+    },
+    // 计薪模式变更处理
+    wageModeChange(e) {
+      const index = e.detail.value
+      this.profile.wageMode = this.wageModes[index].value
+      // 保存计薪模式到本地存储，与首页保持同步
+      uni.setStorageSync('wageMode', this.profile.wageMode)
+      // 如果切换到计时模式，清空岗位类型
+      if (this.profile.wageMode === 'hourly') {
+        this.profile.hourlyJobType = ''
+      }
+    },
+    // 获取计时工人岗位类型选项
+    getHourlyJobTypeOptions() {
+      let options = []
+      this.hourlyJobTypes.forEach(category => {
+        category.options.forEach(option => {
+          options.push(`${category.category} - ${option}`)
+        })
+      })
+      return options
+    },
+    // 计时工人岗位类型变更处理
+    hourlyJobTypeChange(e) {
+      const index = e.detail.value
+      const options = this.getHourlyJobTypeOptions()
+      this.profile.hourlyJobType = options[index]
+    },
+    // 工时制度变更处理
+    workHourSystemChange(e) {
+      const index = e.detail.value
+      this.profile.workHourPreference.workHourSystem = this.workHourSystems[index]
+    },
+    // 用工周期变更处理
+    employmentCycleChange(e) {
+      const index = e.detail.value
+      this.profile.workHourPreference.employmentCycle = this.employmentCycles[index]
+    },
+    // 固定工时变更处理
+    fixedHoursChange(e) {
+      const index = e.detail.value
+      this.profile.workHourPreference.fixedHours = this.fixedHoursOptions[index]
     },
     updateSkillLevel(index, levelIndex) {
       this.skills[index].levelIndex = levelIndex
@@ -1533,6 +1899,151 @@ export default {
   font-size: 28rpx;
 }
 
+/* GSD模态框样式 */
+.gsd-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.gsd-modal {
+  background-color: #fff;
+  border-radius: 20rpx;
+  width: 90%;
+  max-height: 80vh;
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.gsd-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30rpx;
+  border-bottom: 1rpx solid #e0e0e0;
+  background-color: #f5f5f5;
+}
+
+.gsd-modal-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.gsd-modal-close {
+  font-size: 48rpx;
+  color: #999;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.gsd-modal-content {
+  padding: 30rpx;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.gsd-search {
+  display: flex;
+  margin-bottom: 30rpx;
+  gap: 15rpx;
+}
+
+.gsd-search-input {
+  flex: 1;
+  height: 70rpx;
+  line-height: 70rpx;
+  background-color: #f0f0f0;
+  color: #333;
+  border: 1rpx solid #ddd;
+  border-radius: 10rpx;
+  font-size: 24rpx;
+  padding: 0 20rpx;
+}
+
+.gsd-search-btn {
+  height: 70rpx;
+  line-height: 70rpx;
+  background-color: #4A90E2;
+  color: #fff;
+  border: none;
+  border-radius: 10rpx;
+  font-size: 24rpx;
+  padding: 0 30rpx;
+  white-space: nowrap;
+}
+
+.gsd-process-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15rpx;
+}
+
+.gsd-process-item {
+  background-color: #f9f9f9;
+  border: 1rpx solid #e0e0e0;
+  border-radius: 15rpx;
+  padding: 20rpx;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.gsd-process-item:active {
+  background-color: #e8f0fe;
+  border-color: #4A90E2;
+  transform: scale(0.98);
+}
+
+.gsd-process-name {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+  display: block;
+  margin-bottom: 8rpx;
+}
+
+.gsd-process-standard {
+  font-size: 24rpx;
+  color: #666;
+  display: block;
+  margin-bottom: 8rpx;
+}
+
+.gsd-process-desc {
+  font-size: 22rpx;
+  color: #999;
+  line-height: 1.4;
+  margin-bottom: 8rpx;
+  display: block;
+}
+
+.gsd-process-level {
+  font-size: 20rpx;
+  color: #4A90E2;
+  font-weight: 500;
+  display: block;
+}
+
+.gsd-empty {
+  text-align: center;
+  padding: 60rpx 20rpx;
+  background-color: #f9f9f9;
+  border-radius: 15rpx;
+  border: 1rpx dashed #e0e0e0;
+}
+
+.gsd-empty-text {
+  font-size: 24rpx;
+  color: #999;
+}
+
 .save-btn {
   background-color: #4A90E2;
   color: #fff;
@@ -1569,6 +2080,131 @@ export default {
   border-radius: 20rpx;
   padding: 10rpx 20rpx;
   font-size: 24rpx;
+}
+
+/* 计薪模式与稳定性数据样式 */
+.wage-mode-section {
+  margin-bottom: 25rpx;
+}
+
+.wage-mode-stats {
+  background-color: #f9f9f9;
+  padding: 20rpx;
+  border-radius: 10rpx;
+  border-left: 5rpx solid #4CAF50;
+  margin-bottom: 20rpx;
+}
+
+.wage-mode-item {
+  margin-bottom: 10rpx;
+  font-size: 24rpx;
+  color: #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sub-section-title {
+  font-size: 24rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 15rpx;
+  display: block;
+}
+
+.stability-section {
+  margin-top: 20rpx;
+}
+
+.stability-stats {
+  background-color: #f9f9f9;
+  padding: 20rpx;
+  border-radius: 10rpx;
+  border-left: 5rpx solid #2196F3;
+}
+
+.stability-stat-item {
+  margin-bottom: 15rpx;
+  font-size: 24rpx;
+  color: #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.stability-label {
+  flex: 1;
+  margin-right: 10rpx;
+}
+
+.stability-value {
+  font-weight: bold;
+  margin-right: 10rpx;
+}
+
+.stability-tag {
+  padding: 5rpx 15rpx;
+  border-radius: 15rpx;
+  font-size: 20rpx;
+  font-weight: bold;
+}
+
+.stability-tag.high-stability {
+  background-color: #4CAF50;
+  color: #fff;
+}
+
+.stability-tag.medium-stability {
+  background-color: #FFC107;
+  color: #333;
+}
+
+.stability-tag.low-stability {
+  background-color: #FF5722;
+  color: #fff;
+}
+
+/* 简历背书样式 */
+.resume-endorsement-section {
+  margin-bottom: 25rpx;
+}
+
+.endorsement-content {
+  background-color: #f9f9f9;
+  padding: 20rpx;
+  border-radius: 10rpx;
+  border-left: 5rpx solid #9C27B0;
+}
+
+.stability-tags {
+  margin-bottom: 15rpx;
+}
+
+.tag-label {
+  font-size: 24rpx;
+  color: #666;
+  margin-right: 10rpx;
+}
+
+.tag-list {
+  display: inline-block;
+}
+
+.factory-endorsement {
+  margin-top: 15rpx;
+}
+
+.endorsement-label {
+  font-size: 24rpx;
+  color: #666;
+  margin-right: 10rpx;
+}
+
+.endorsement-value {
+  font-size: 24rpx;
+  color: #333;
+  line-height: 1.4;
 }
 
 /* 工作意向标签样式 */

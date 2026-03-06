@@ -44,17 +44,43 @@ export default {
 			})
 		} else {
 			// 根据角色跳转到对应首页
-			const finalRole = userInfo.role
+			const userInfo = uni.getStorageSync('userInfo') || {}
 			const isEnterpriseUser = userInfo.isEnterprise || false
+			const boundCompany = userInfo.boundCompany || uni.getStorageSync('boundCompany') || null
 			
-			if (finalRole === '个人') {
+			console.log('App启动 - userInfo:', userInfo)
+			console.log('App启动 - isEnterpriseUser:', isEnterpriseUser)
+			console.log('App启动 - boundCompany:', boundCompany)
+			
+			// 强制统一的身份判断规则
+			if (isEnterpriseUser === true) {
+				// 工厂主账号跳转到工厂首页
+				console.log('跳转：工厂主账号 -> 工厂首页')
+				uni.reLaunch({
+					url: '/pages/factory/factory-home',
+					fail: (err) => {
+						console.error('跳转工厂首页失败：', err)
+					}
+				})
+			} else if (boundCompany !== null && isEnterpriseUser === false) {
+				// 子账号跳转到工厂首页
+				console.log('跳转：子账号 -> 工厂首页')
+				uni.reLaunch({
+					url: '/pages/factory/factory-home',
+					fail: (err) => {
+						console.error('跳转工厂首页失败：', err)
+					}
+				})
+			} else if (isEnterpriseUser === false && boundCompany === null) {
+				// 普通个人账号跳转到工人首页
+				console.log('跳转：普通个人账号 -> 工人首页')
 				uni.reLaunch({
 					url: '/pages/worker/employee-home',
 					fail: (err) => {
 						console.error('跳转个人首页失败：', err)
 					}
 				})
-			} else if (finalRole === '赫尔玛智能') {
+			} else if (userInfo.role === '赫尔玛智能') {
 				// 赫尔玛智能角色跳转到Web版后台管理系统
 				uni.showToast({
 					title: '正在打开赫尔玛智能后台管理系统...',
@@ -72,21 +98,22 @@ export default {
 						}
 					})
 				}, 1000)
-			} else if (finalRole === '厂长' || finalRole === '工厂版' || finalRole === '工厂') {
-				uni.redirectTo({
-					url: '/pages/factory/factory-home',
-					fail: (err) => {
-						console.error('跳转工厂首页失败：', err)
-					}
-				})
 			}
 		}
 		
 		// 延迟执行其他初始化操作
 		setTimeout(() => {
-			// 检查并处理超时未确认的班组归属请求
-			checkTeamConfirmationTimeout()
-			console.log('已检查班组确认超时')
+			// 检查用户信息，只有工厂主和子账号才执行工厂端逻辑
+			const userInfo = uni.getStorageSync('userInfo') || {}
+			const isEnterpriseUser = userInfo.isEnterprise || false
+			const boundCompany = uni.getStorageSync('boundCompany') || null
+			
+			// 只有工厂主或子账号才执行工厂端相关操作
+			if (isEnterpriseUser || boundCompany) {
+				// 检查并处理超时未确认的班组归属请求
+				checkTeamConfirmationTimeout()
+				console.log('已检查班组确认超时')
+			}
 			
 			// 检查是否已经初始化过评价数据
 			const hasInitialized = uni.getStorageSync('hasInitializedEvaluations')
@@ -106,8 +133,14 @@ export default {
 	},
 	onShow: function() {
 		console.log('App 显示正常')
-		// 每次应用显示时检查超时
-		checkTeamConfirmationTimeout()
+		// 每次应用显示时检查超时，只有工厂主和子账号才执行
+		const userInfo = uni.getStorageSync('userInfo') || {}
+		const isEnterpriseUser = userInfo.isEnterprise || false
+		const boundCompany = uni.getStorageSync('boundCompany') || null
+		
+		if (isEnterpriseUser || boundCompany) {
+			checkTeamConfirmationTimeout()
+		}
 	},
 	onHide: function() {
 		console.log('App Hide')

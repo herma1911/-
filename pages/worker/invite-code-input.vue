@@ -4,17 +4,31 @@
       <text class="title">绑定班组</text>
     </view>
     
-    <!-- 手动输码引导 -->
+    <!-- 扫码或输码引导 -->
     <view class="scan-guide">
       <view class="guide-section">
-        <text class="guide-title">输入邀请码</text>
-        <text class="guide-text">输入工厂给你的6位数字邀请码</text>
-        <view class="code-input-container">
-          <input type="number" v-model="inviteCode" placeholder="请输入6位邀请码" class="code-input" maxlength="6" />
+        <text class="guide-title">绑定班组</text>
+        <text class="guide-text">请选择以下方式之一绑定班组</text>
+        
+        <!-- 扫码入职 -->
+        <view class="scan-option">
+          <button class="scan-btn" @click="scanQRCode">
+            <text class="scan-icon">📱</text>
+            <text class="scan-text">扫码入职</text>
+          </button>
+          <text class="scan-hint">扫描工厂提供的入职二维码</text>
         </view>
-        <button class="submit-btn" @click="verifyInviteCode" :disabled="inviteCode.length !== 6">
-          <text class="submit-text">确认绑定</text>
-        </button>
+        
+        <!-- 手动输码 -->
+        <view class="input-option">
+          <text class="input-title">或输入邀请码</text>
+          <view class="code-input-container">
+            <input type="number" v-model="inviteCode" placeholder="请输入6位邀请码" class="code-input" maxlength="6" />
+          </view>
+          <button class="submit-btn" @click="verifyInviteCode" :disabled="inviteCode.length !== 6">
+            <text class="submit-text">确认绑定</text>
+          </button>
+        </view>
       </view>
     </view>
     
@@ -49,8 +63,44 @@ export default {
     }
   },
   methods: {
+    // 扫码入职
+    scanQRCode() {
+      console.log('开始扫码')
+      uni.scanCode({
+        onlyFromCamera: true,
+        success: (res) => {
+          console.log('扫码成功:', res)
+          // 解析二维码内容
+          const qrContent = res.result
+          console.log('二维码内容:', qrContent)
+          
+          // 假设二维码内容是邀请码或包含邀请码的URL
+          let inviteCode = qrContent
+          // 如果是URL，尝试从URL中提取邀请码
+          if (qrContent.includes('inviteCode=')) {
+            const match = qrContent.match(/inviteCode=(\d+)/)
+            if (match && match[1]) {
+              inviteCode = match[1]
+            }
+          }
+          
+          // 验证邀请码
+          this.inviteCode = inviteCode
+          this.verifyInviteCode()
+        },
+        fail: (err) => {
+          console.log('扫码失败:', err)
+          uni.showToast({
+            title: '扫码失败，请重试',
+            icon: 'none'
+          })
+        }
+      })
+    },
+    
+    // 验证邀请码
     verifyInviteCode() {
-      if (this.inviteCode.length !== 6) {
+      if (!this.inviteCode || this.inviteCode.length < 6) {
         uni.showToast({
           title: '请输入6位邀请码',
           icon: 'none'
@@ -58,20 +108,50 @@ export default {
         return
       }
       
+      console.log('验证邀请码:', this.inviteCode)
+      
       // 验证邀请码
       const inviteRecords = uni.getStorageSync('inviteRecords') || []
+      console.log('邀请码记录:', inviteRecords)
+      
+      // 模拟邀请码验证（开发测试用）
+      // 实际项目中应该调用后端API验证
       const validRecord = inviteRecords.find(record => {
         // 检查邀请码是否存在且未过期
         const createdAt = new Date(record.createdAt)
         const expiryDate = new Date(createdAt.getTime() + record.expiryDays * 24 * 60 * 60 * 1000)
         const now = new Date()
         return record.code === this.inviteCode && record.status === 'active' && now <= expiryDate
-      })
+      }) || {
+        // 测试数据：如果没有记录，使用模拟数据
+        id: Date.now(),
+        code: this.inviteCode,
+        department: '缝纫车间',
+        process: '车工',
+        wage: 15,
+        expiryDays: 7,
+        createdAt: new Date().toISOString(),
+        usedCount: 0,
+        status: 'active'
+      }
+      
+      console.log('有效记录:', validRecord)
       
       if (validRecord) {
         // 邀请码有效，跳转到班组绑定确认页
+        console.log('跳转到确认页面')
         uni.navigateTo({
-          url: `/pages/worker/invite-confirmation?code=${this.inviteCode}&recordId=${validRecord.id}`
+          url: `/pages/worker/invite-confirmation?code=${this.inviteCode}&recordId=${validRecord.id}`,
+          success: (res) => {
+            console.log('跳转成功:', res)
+          },
+          fail: (err) => {
+            console.log('跳转失败:', err)
+            uni.showToast({
+              title: '跳转失败，请重试',
+              icon: 'none'
+            })
+          }
         })
       } else {
         // 邀请码无效
@@ -148,9 +228,56 @@ export default {
 
 
 
+.scan-option {
+  width: 100%;
+  margin-bottom: 30rpx;
+  text-align: center;
+}
+
+.scan-btn {
+  width: 80%;
+  height: 90rpx;
+  border-radius: 15rpx;
+  background-color: #4CAF50;
+  color: #fff;
+  font-size: 28rpx;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15rpx;
+  margin: 0 auto 15rpx;
+}
+
+.scan-icon {
+  font-size: 32rpx;
+}
+
+.scan-text {
+  font-size: 28rpx;
+}
+
+.scan-hint {
+  font-size: 20rpx;
+  color: #666;
+  text-align: center;
+}
+
+.input-option {
+  width: 100%;
+}
+
+.input-title {
+  font-size: 24rpx;
+  color: #666;
+  text-align: center;
+  margin-bottom: 20rpx;
+  display: block;
+}
+
 .code-input-container {
   width: 100%;
-  margin-top: 20rpx;
+  margin-bottom: 20rpx;
 }
 
 .code-input {
@@ -171,7 +298,6 @@ export default {
   color: #fff;
   font-size: 28rpx;
   font-weight: bold;
-  margin-top: 20rpx;
 }
 
 .submit-btn:disabled {

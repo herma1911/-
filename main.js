@@ -1,8 +1,8 @@
 import App from './App'
-import { startScheduledTasks } from './utils/scheduler.js'
+// import { startScheduledTasks } from './utils/scheduler.js'
 
-// 启动定时任务
-startScheduledTasks()
+// 启动定时任务 - 暂时注释掉，避免应用启动时卡住
+// startScheduledTasks()
 
 // #ifndef VUE3
 import Vue from 'vue'

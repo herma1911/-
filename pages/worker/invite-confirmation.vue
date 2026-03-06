@@ -100,10 +100,68 @@ export default {
       return this.confirmations.identity && this.confirmations.usage
     }
   },
+  onLoad(options) {
+    // 从URL参数中获取邀请码和记录ID
+    const { code, recordId } = options || {}
+    console.log('Invite confirmation loaded with options:', options)
+    console.log('Invite confirmation loaded with code:', code, 'recordId:', recordId)
+    
+    // 模拟加载工厂信息和邀请记录
+    this.factoryInfo = {
+      name: 'XX服装厂',
+      address: 'XX市XX区XX街道XX号'
+    }
+    
+    this.inviteRecord = {
+      department: '缝纫车间',
+      process: '车工',
+      wage: 15,
+      code: code // 保存邀请码
+    }
+    
+    console.log('Loaded factoryInfo:', this.factoryInfo)
+    console.log('Loaded inviteRecord:', this.inviteRecord)
+  },
   methods: {
     nextStep() { this.currentStep = 2 },
-    submitConfirmation() { this.showSuccess = true },
-    goToLedger() {}
+    submitConfirmation() {
+      // 保存绑定状态到本地存储
+      const boundCompany = {
+        name: this.factoryInfo.name || 'XX服装厂',
+        department: this.inviteRecord.department || '',
+        process: this.inviteRecord.process || '',
+        wage: this.inviteRecord.wage || 0,
+        boundAt: new Date().toISOString()
+      }
+      uni.setStorageSync('boundCompany', boundCompany)
+      
+      // 保存款号工序映射（示例数据）
+      const styleProcessMap = {
+        'ST123': [
+          { processName: '车工', unitPrice: 15 },
+          { processName: '熨烫', unitPrice: 8 },
+          { processName: '包装', unitPrice: 5 }
+        ],
+        'ST456': [
+          { processName: '车工', unitPrice: 18 },
+          { processName: '熨烫', unitPrice: 10 },
+          { processName: '包装', unitPrice: 6 }
+        ]
+      }
+      uni.setStorageSync('styleProcessMap', styleProcessMap)
+      
+      // 保存历史款号
+      const styleHistory = ['ST123', 'ST456']
+      uni.setStorageSync('styleHistory', styleHistory)
+      
+      this.showSuccess = true
+    },
+    goToLedger() {
+      // 跳转到首页，确保绑定状态被重新加载
+      uni.reLaunch({
+        url: '/pages/worker/employee-home'
+      })
+    }
   }
 }
 </script>

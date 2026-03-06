@@ -8,12 +8,26 @@
       <text class="section-title">收料信息</text>
       <view class="receipt-form">
         <view class="form-item">
-          <text class="form-label">订单选择：</text>
-          <picker :value="orderIndex" :range="orders" @change="orderChange">
-            <view class="picker">
-              {{ orders[orderIndex] }}
-            </view>
-          </picker>
+          <text class="form-label">输入模式：</text>
+          <view class="type-selector">
+            <button 
+              :class="['type-btn', { active: inputMode === 'order' }]" 
+              @click="switchToOrderMode"
+            >
+              选择订单
+            </button>
+            <button 
+              :class="['type-btn', { active: inputMode === 'manual' }]" 
+              @click="switchToManualMode"
+            >
+              手动输入
+            </button>
+          </view>
+        </view>
+
+        <view class="form-item" v-if="inputMode === 'manual'">
+          <text class="form-label">款号：</text>
+          <input type="text" v-model="manualStyleNumber" placeholder="请输入款号" class="form-input" :focus="inputMode === 'manual'" />
         </view>
         <view class="form-item">
           <text class="form-label">收料类型：</text>
@@ -131,6 +145,10 @@ export default {
       // 订单列表
       orders: [],
       orderIndex: 0,
+      // 输入模式：order（选择订单）或 manual（手动输入）
+      inputMode: 'order',
+      // 手动输入的款号
+      manualStyleNumber: '',
       // 收料类型：cutting（裁片）或 auxiliary（辅料）
       receiptType: 'cutting',
       // 裁片信息
@@ -178,26 +196,83 @@ export default {
         filteredOrders = orders
       }
       
-      // 如果没有订单，使用默认数据
-      if (filteredOrders.length === 0) {
-        filteredOrders = [
-          { id: 1, styleNumber: '订单1', productionLine: '产线1' },
-          { id: 2, styleNumber: '订单2', productionLine: '产线2' },
-          { id: 3, styleNumber: '订单3', productionLine: '产线1' },
-          { id: 4, styleNumber: '订单4', productionLine: '产线3' },
-          { id: 5, styleNumber: '订单5', productionLine: '产线2' }
-        ]
-      }
-      
       this.fullOrders = filteredOrders
       this.orders = filteredOrders.map(order => order.styleNumber || `订单${order.id}`)
     },
     // 订单选择
     orderChange(e) {
       this.orderIndex = e.detail.value
+      // 自动回填订单的颜色和数量信息
+      this.fillOrderInfo()
+    },
+    // 自动回填订单信息
+    fillOrderInfo() {
+      if (this.inputMode === 'order' && this.fullOrders.length > 0) {
+        const selectedOrder = this.fullOrders[this.orderIndex]
+        if (selectedOrder) {
+          // 自动回填颜色和数量信息
+          // 由于订单数据中没有尺码信息，需要用户手动输入
+          if (selectedOrder.colorA && selectedOrder.quantityA > 0) {
+            this.cuttingInfo.color = selectedOrder.colorA
+          } else if (selectedOrder.colorB && selectedOrder.quantityB > 0) {
+            this.cuttingInfo.color = selectedOrder.colorB
+          } else if (selectedOrder.colorC && selectedOrder.quantityC > 0) {
+            this.cuttingInfo.color = selectedOrder.colorC
+          }
+          
+          // 计算并回填总数量
+          const totalQuantity = (selectedOrder.quantityA || 0) + (selectedOrder.quantityB || 0) + (selectedOrder.quantityC || 0)
+          this.cuttingInfo.quantity = totalQuantity
+        }
+      }
+    },
+
+    // 切换到选择订单模式
+    switchToOrderMode() {
+      this.inputMode = 'order'
+      // 显示订单选择器
+      this.showOrderSelector()
+    },
+    // 显示订单选择器
+    showOrderSelector() {
+      if (this.orders.length > 0) {
+        uni.showActionSheet({
+          itemList: this.orders,
+          success: (res) => {
+            this.orderIndex = res.tapIndex
+            // 自动回填订单信息
+            this.fillOrderInfo()
+          }
+        })
+      } else {
+        uni.showToast({
+          title: '暂无订单数据',
+          icon: 'none'
+        })
+      }
+    },
+    // 切换到手动输入模式
+    switchToManualMode() {
+      this.inputMode = 'manual'
+      this.manualStyleNumber = ''
+      // 清空裁片信息
+      this.cuttingInfo = {
+        color: '',
+        size: '',
+        quantity: 0,
+        remark: ''
+      }
     },
     // 添加裁片
     addCuttingItem() {
+      if (this.inputMode === 'manual' && !this.manualStyleNumber) {
+        uni.showToast({
+          title: '请输入款号',
+          icon: 'none'
+        })
+        return
+      }
+      
       if (!this.cuttingInfo.color || !this.cuttingInfo.size || this.cuttingInfo.quantity <= 0) {
         uni.showToast({
           title: '请填写完整的裁片信息',
@@ -206,9 +281,12 @@ export default {
         return
       }
       
+      // 获取订单号
+      const orderNumber = this.inputMode === 'order' ? this.orders[this.orderIndex] : this.manualStyleNumber
+      
       // 添加到收料列表
       this.receiptItems.push({
-        order: this.orders[this.orderIndex],
+        order: orderNumber,
         type: 'cutting',
         color: this.cuttingInfo.color,
         size: this.cuttingInfo.size,
@@ -251,6 +329,14 @@ export default {
     },
     // 添加辅料到收料列表
     addAuxiliaryToReceipt() {
+      if (this.inputMode === 'manual' && !this.manualStyleNumber) {
+        uni.showToast({
+          title: '请输入款号',
+          icon: 'none'
+        })
+        return
+      }
+      
       const validItems = this.auxiliaryItems.filter(item => 
         item.name && item.quantity > 0 && item.unit
       )
@@ -263,10 +349,13 @@ export default {
         return
       }
       
+      // 获取订单号
+      const orderNumber = this.inputMode === 'order' ? this.orders[this.orderIndex] : this.manualStyleNumber
+      
       // 添加到收料列表
       validItems.forEach(item => {
         this.receiptItems.push({
-          order: this.orders[this.orderIndex],
+          order: orderNumber,
           type: 'auxiliary',
           name: item.name,
           quantity: item.quantity,

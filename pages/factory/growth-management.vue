@@ -100,7 +100,7 @@
         </view>
         <view class="reward-item">
           <text class="reward-label">月度推荐20名工人：</text>
-          <text class="reward-value">破格升级为优质工厂</text>
+          <text class="reward-value">破格升级为B级工厂</text>
         </view>
       </view>
     </view>
@@ -212,7 +212,7 @@
 </template>
 
 <script>
-import { getFactoryScore, updateFactoryScore, getFactoryRankLevel } from '../../utils/factory-score.js'
+import factoryLevelSystem from '../../utils/factory-level-system.js'
 
 export default {
   data() {
@@ -331,19 +331,33 @@ export default {
       this.totalWorkers = referralStats.totalWorkers
       this.totalPermissionsGained = referralStats.totalPermissions
       
-      // 加载工厂积分
-      const companyId = '123' // 假设工厂ID
-      const scoreData = getFactoryScore(companyId)
-      this.factoryScore = scoreData.score
-      this.rankLevel = getFactoryRankLevel(scoreData.score)
-      
-      // 加载权限数据
+      // 加载工厂等级数据
       const factoryData = uni.getStorageSync('factoryData') || {
+        level: 'B',
+        totalClosedPay: 100,
+        closedPayRate: 0.95,
+        continuousPayMonth: 6,
+        workerGoodRate: 0.9,
+        totalInviteFactory: 3,
+        totalInviteWorker: 50,
+        monthlyLoginDays: 20,
+        violationCount: 0,
         unlockPermissions: {
           general: 10,
           premium: 0
         }
       }
+      
+      // 获取当前等级
+      const currentLevel = factoryLevelSystem.getFactoryLevel(factoryData)
+      const levelInfo = factoryLevelSystem.factoryLevels[currentLevel]
+      
+      this.factoryScore = factoryData.totalClosedPay // 使用闭环发薪次数作为显示值
+      this.rankLevel = { 
+        name: levelInfo.name, 
+        description: levelInfo.benefits[0] 
+      }
+      
       this.remainingPermissions = factoryData.unlockPermissions.general
       
       // 加载购买记录

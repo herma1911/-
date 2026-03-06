@@ -2,343 +2,121 @@
   <view class="ledger-container">
     <!-- 顶部导航栏（固定） -->
     <view class="top-nav">
-      <text class="nav-title">个人账本</text>
-      <button class="nav-back" @click="navigateBack">返回</button>
+      <text class="nav-back" @click="navigateBack">←</text>
+      <text class="nav-title">账本</text>
+      <text class="add-btn" @click="showAddDialog">+记一笔</text>
     </view>
     
-    <!-- 本月搞钱战绩卡（核心视觉第一屏） -->
-    <view class="income-rank-card">
-      <!-- 顶部标题 -->
-      <view class="card-header">
-        <text class="title">本月搞钱战绩</text>
-        <text class="date">{{ currentMonth }}月</text>
-      </view>
-
-      <!-- 核心数据区 -->
-      <view class="core-data">
-        <text class="income-label">本月纯收入</text>
-        <text class="income-value">¥{{ monthlyIncome }}</text>
-        <text class="income-detail">总收入¥{{ monthlyIncome + 2300 }} - 总支出¥2300</text>
-        <view class="rank-tip">
-          <text class="icon">🎉</text>
-          <text class="tip-text">超过全国 {{ exceedPercent }}% 的同工种{{ workType }}师傅！</text>
-        </view>
-      </view>
-
-      <!-- 细分对比 -->
-      <view class="detail-compare">
-        <view class="compare-item">
-          <text class="compare-label">同城排名</text>
-          <text class="compare-value">前 {{ cityRank }}%</text>
-        </view>
-        <view class="divider"></view>
-        <view class="compare-item">
-          <text class="compare-label">单日最高</text>
-          <text class="compare-value">¥{{ dailyMax }}</text>
-        </view>
-      </view>
-
-      <!-- 专属标识 -->
-      <view class="exclusive-badge" v-if="showBadge">
-        <text class="badge-icon">🏆</text>
-        <text class="badge-text">{{ badgeName }}</text>
-      </view>
-    </view>
-    
-    <!-- 核心操作大按钮区（用户进来第一眼就能点，不用滑动） -->
-    <view class="core-action-buttons">
-      <button class="core-action-button piece-work" @click="switchMode('piece')">
-        <text class="button-icon">⚡</text>
-        <text class="button-text">记计件</text>
-      </button>
-      <button class="core-action-button time-work" @click="switchMode('time')">
-        <text class="button-icon">⏰</text>
-        <text class="button-text">记计时</text>
-      </button>
-      <button class="core-action-button add-expense" @click="addExpense">
-        <text class="button-icon">-</text>
-        <text class="button-text">记支出</text>
-      </button>
-      <button class="core-action-button my-privilege" @click="showPrivileges">
-        <text class="button-icon">🏆</text>
-        <text class="button-text">我的特权</text>
-      </button>
-    </view>
-    
-    <!-- 账本切换 Tab（个人账本 / 微信确认账本） -->
-    <view class="ledger-tabs">
-      <scroll-view scroll-x="true" class="ledger-tabs-scroll">
-        <view 
-          v-for="(ledger, index) in ledgers" 
-          :key="index"
-          :class="['ledger-tab', { active: currentLedgerId === ledger.id }]"
-          @click="switchLedger(ledger.id)"
-        >
-          {{ledger.name}}
-        </view>
-      </scroll-view>
-    </view>
-    
-    <!-- 记账模式切换 -->
-    <view class="mode-switch">
-      <button 
-        :class="['mode-btn', { active: currentMode === 'piece' }]" 
-        @click="currentMode = 'piece'"
+    <!-- 顶部固定3个tab -->
+    <view class="main-tabs">
+      <view 
+        v-for="(tab, index) in tabs" 
+        :key="index"
+        :class="['tab-item', { active: currentTab === tab.key }]"
+        @click="currentTab = tab.key"
       >
-        计件
-      </button>
-      <button 
-        :class="['mode-btn', { active: currentMode === 'time' }]" 
-        @click="currentMode = 'time'"
-      >
-        计时
-      </button>
-    </view>
-    
-    <!-- 日期筛选区（极简压缩，不占空间） -->
-    <view class="date-range-selector">
-      <button class="range-button" @click="showDateRangePicker">选择日期范围</button>
-      <text class="selected-range">{{dateRangeText}}</text>
-    </view>
-    
-    <!-- 操作提示气泡 -->
-    <action-tooltip 
-      v-if="showActionTooltip" 
-      :show="showActionTooltip" 
-      :text="tooltipText" 
-      :position="tooltipPosition"
-      @close="onTooltipClose"
-    />
-    
-    <!-- 日历模块（优化状态标注，加彩蛋） -->
-    <view class="calendar-view">
-      <view class="calendar-header">
-        <button class="month-nav" @click="prevMonth">‹</button>
-        <text class="current-month">{{currentMonthText}}</text>
-        <button class="month-nav" @click="nextMonth">›</button>
-      </view>
-      <view class="calendar-grid">
-        <text class="weekday" v-for="day in weekdays" :key="day">{{day}}</text>
-        <view 
-          v-for="(day, index) in calendarDays" 
-          :key="index"
-          :class="['calendar-day', { 
-            'other-month': !day.isCurrentMonth, 
-            'has-record': day.hasRecord, 
-            'selected': isDateSelected(day.date),
-            'sunday': isSunday(day.date),
-            'today': isToday(day.date),
-            'full-attendance': isFullAttendanceMonth
-          }]"
-          @click="selectDate(day.date)"
-        >
-          <text class="day-number">{{day.day}}</text>
-          <text v-if="day.amount" class="day-amount">{{day.amount}}</text>
-          <text v-if="isSunday(day.date)" class="sunday-tag">休</text>
-          <text v-if="day.hasRecord && !isSunday(day.date)" class="check-icon">✅</text>
-          <text v-if="day.hasRecord && isConsecutiveDay(day.date, 3) && !isSunday(day.date)" class="consecutive-icon-3">🔥</text>
-          <text v-if="day.hasRecord && isConsecutiveDay(day.date, 7) && !isSunday(day.date)" class="consecutive-icon-7">🏆</text>
-        </view>
+        {{ tab.name }}
       </view>
     </view>
     
-    <!-- 选中日期的记录 -->
-    <view class="selected-date-records" v-if="selectedDate">
-      <text class="section-title">{{formatDate(selectedDate)}} 的记录</text>
-      <view v-if="getRecordsByDate(selectedDate).length > 0">
-        <view v-for="(record, index) in getRecordsByDate(selectedDate)" :key="index" class="record-item">
-          <text class="record-description">{{record.description}}</text>
-          <text class="record-amount">{{record.amount}}元</text>
-          <text :class="['record-status', record.status]">{{getStatusText(record.status)}}</text>
-          <view class="record-actions">
-            <button v-if="record.status !== 'confirmed'" class="edit-button" @click="editRecord(record)">编辑</button>
-            <button v-if="record.status !== 'confirmed'" class="delete-button" @click="deleteRecord(record)">删除</button>
-          </view>
-        </view>
-      </view>
-      <view v-else class="no-records">
-        <text>暂无记录</text>
-      </view>
-    </view>
-    
-    <!-- 汇总信息区（和记工数据强联动） -->
-    <view class="summary-section">
-      <text class="section-title">汇总信息</text>
-      <view class="summary-grid">
-        <view class="summary-item">
-          <text class="summary-label">总金额</text>
-          <text class="summary-value">{{totalAmount.toFixed(2)}}元</text>
-        </view>
-        <view class="summary-item">
-          <text class="summary-label">记录条数</text>
-          <text class="summary-value">{{filteredRecords.length}}条</text>
-        </view>
-        <view class="summary-item">
-          <text class="summary-label">款号数</text>
-          <text class="summary-value">{{uniqueStyles.length}}</text>
-        </view>
-        <view class="summary-item">
-          <text class="summary-label">工序数</text>
-          <text class="summary-value">{{uniqueProcesses.length}}</text>
-        </view>
-      </view>
-    </view>
-    
-    <!-- 实发工资区（和汇总数据联动） -->
-    <view class="salary-section">
-      <text class="section-title">实发工资</text>
-      <view class="salary-input-container">
-        <view class="form-group">
-          <text class="form-label">实发工资金额</text>
-          <input type="number" v-model="salaryForm.amount" class="form-input" placeholder="请输入实发工资金额" />
-        </view>
-        <view class="form-group">
-          <text class="form-label">备注</text>
-          <input type="text" v-model="salaryForm.remark" class="form-input" placeholder="请输入备注" />
-        </view>
-        <button class="salary-save-button" @click="saveSalary">保存实发工资</button>
-      </view>
-      <view v-if="savedSalary" class="saved-salary">
-        <text class="saved-salary-label">已保存的实发工资：</text>
-        <text class="saved-salary-value">{{savedSalary.amount}}元</text>
-        <text v-if="savedSalary.remark" class="saved-salary-remark">({{savedSalary.remark}})</text>
-        <text class="saved-salary-date">{{formatDate(savedSalary.date)}}</text>
-      </view>
-    </view>
-    
-    <!-- 激励合并区（搞钱徽章 + 稳工进度 + 稳定称号，三合一不分散） -->
-    <view class="incentive-section">
-      <!-- 搞钱徽章 -->
-      <view class="badge-section">
+    <!-- 收支明细 Tab -->
+    <view v-if="currentTab === 'expense'" class="tab-content">
+      <!-- 固定支出管理 -->
+      <view class="fixed-expenses-section">
         <view class="section-header">
-          <text class="section-title">我的搞钱徽章</text>
-          <text class="section-subtitle">已解锁 {{ unlockedCount }}/{{ totalCount }}</text>
+          <text class="section-title">固定支出管理</text>
+          <text class="section-action" @click="goToFixedExpenses">管理</text>
         </view>
-        <scroll-view class="badge-scroll" scroll-x>
-          <view 
-            class="badge-item" 
-            :class="{ unlocked: item.unlocked, locked: !item.unlocked }" 
-            v-for="item in badgeList" 
-            :key="item.id" 
-            @tap="showBadgeDetail(item)"
-          >
-            <view class="badge-icon-wrapper">
-              <text class="badge-icon">{{ item.icon }}</text>
-            </view>
-            <text class="badge-name">{{ item.name }}</text>
-            <text class="badge-status" v-if="item.unlocked">已解锁</text>
-            <text class="badge-status" v-else>未解锁</text>
+        <view class="fixed-expenses-list">
+          <view v-if="fixedExpenses.length === 0" class="empty-state">
+            <text class="empty-icon">📅</text>
+            <text class="empty-text">暂无固定支出</text>
+            <text class="empty-desc">点击管理按钮添加固定支出</text>
           </view>
-        </scroll-view>
-      </view>
-      
-      <!-- 稳工进度 -->
-      <view class="checkin-card">
-        <view class="card-header">
-          <text class="title">我的稳工进度</text>
-          <text class="days">连续记工 {{ continuousDays }} 天</text>
-        </view>
-        
-        <!-- 进度条 -->
-        <view class="progress-box">
-          <view class="progress-bar" :style="{ width: progressWidth + '%' }"></view>
-        </view>
-        <text class="progress-tip">距离解锁【{{ nextBadge.name }}】还有 {{ nextBadge.needDays }} 天</text>
-        
-        <!-- 特权提示 -->
-        <view class="privilege-tip">
-          <text class="icon">🏆</text>
-          <text class="tip-text">连续记工解锁稳定认证，找工作工厂优先看！</text>
+          <view v-else class="fixed-expense-item" v-for="expense in fixedExpenses" :key="expense.id">
+            <text class="expense-name">{{ expense.name }}</text>
+            <text class="expense-amount">¥{{ expense.amount.toFixed(2) }}</text>
+            <text class="expense-date">每月{{ expense.remindDay }}日</text>
+          </view>
         </view>
       </view>
       
-      <!-- 稳定称号 -->
-      <view class="badge-section">
+      <!-- 收支明细 -->
+      <view class="expense-detail-section">
         <view class="section-header">
-          <text class="section-title">我的稳定称号</text>
-        </view>
-        <view class="badge-grid">
-          <view 
-            class="badge-item" 
-            :class="{ unlocked: item.unlocked, locked: !item.unlocked }" 
-            v-for="item in continuousBadgeList" 
-            :key="item.id" 
-            @tap="showContinuousBadgeDetail(item)"
-          >
-            <text class="badge-icon">{{ item.icon }}</text>
-            <text class="badge-name">{{ item.name }}</text>
-            <text class="badge-days">{{ item.days }}天</text>
+          <text class="section-title">收支明细</text>
+          <view class="filter-buttons">
+            <button class="filter-btn" :class="{ active: filterType === 'all' }" @click="filterType = 'all'">全部</button>
+            <button class="filter-btn" :class="{ active: filterType === 'income' }" @click="filterType = 'income'">收入</button>
+            <button class="filter-btn" :class="{ active: filterType === 'expense' }" @click="filterType = 'expense'">支出</button>
           </view>
         </view>
-      </view>
-    </view>
-    
-    <!-- 计算规则说明 -->
-    <view class="rule-section">
-      <text class="section-title">计算规则</text>
-      <view class="rule-content">
-        <text class="rule-text">款号下的工序 × 单价 = 金额</text>
-      </view>
-    </view>
-    
-    <!-- 款号-工序汇总 -->
-    <view class="style-summary-section">
-      <text class="section-title">款号-工序汇总</text>
-      <view v-if="styleProcessSummary.length > 0">
-        <view v-for="(styleItem, styleIndex) in styleProcessSummary" :key="styleIndex" class="style-summary-item">
-          <view class="style-header" @click="toggleStyleExpand(styleItem.style)">
-            <text class="style-name">{{styleItem.style}}</text>
-            <text class="style-total-amount">{{styleItem.totalAmount.toFixed(2)}}元</text>
-            <text class="style-total-quantity">{{styleItem.totalQuantity}}小件</text>
-            <text class="expand-icon">{{expandedStyles.includes(styleItem.style) ? '▼' : '▶'}}</text>
+        
+        <view class="date-range-selector">
+          <button class="range-button" @click="showDateRangePicker">选择日期范围</button>
+          <text class="selected-range">{{dateRangeText}}</text>
+        </view>
+        
+        <view class="records-list">
+          <view v-if="filteredRecords.length === 0" class="empty-state">
+            <text class="empty-icon">📝</text>
+            <text class="empty-text">暂无记录</text>
+            <text class="empty-desc">点击右上角+记一笔添加记录</text>
           </view>
-          <view v-if="expandedStyles.includes(styleItem.style)" class="process-list">
-            <view v-for="(processItem, processIndex) in styleItem.processes" :key="processIndex" class="process-summary-item">
-              <text class="process-name">{{processItem.process}}</text>
-              <text class="process-quantity">{{processItem.quantity}}件</text>
-              <text class="process-unit-price">{{processItem.unitPrice}}元/件</text>
-              <text class="process-amount">{{processItem.amount.toFixed(2)}}元</text>
+          <view v-else class="record-item" v-for="(record, index) in filteredRecords" :key="index">
+            <text class="record-description">{{record.description}}</text>
+            <text :class="['record-amount', { income: record.type === 'income' }]">
+              {{ record.type === 'income' ? '+' : '-' }}¥{{ record.amount }}
+            </text>
+            <text class="record-date">{{formatDate(new Date(record.date))}}</text>
+            <view class="record-actions">
+              <button class="edit-button" @click="editRecord(record)">编辑</button>
+              <button class="delete-button" @click="deleteRecord(record)">删除</button>
             </view>
           </view>
         </view>
       </view>
-      <view v-else class="no-data">
-        <text>暂无数据</text>
+    </view>
+    
+    <!-- 图表分析 Tab -->
+    <view v-if="currentTab === 'chart'" class="tab-content">
+      <view class="chart-section">
+        <text class="section-title">月度收支趋势</text>
+        <view class="chart-container">
+          <canvas canvas-id="trendChart" class="chart-canvas"></canvas>
+        </view>
+      </view>
+      
+      <view class="chart-section">
+        <text class="section-title">支出占比</text>
+        <view class="chart-container">
+          <canvas canvas-id="pieChart" class="chart-canvas"></canvas>
+        </view>
+      </view>
+      
+      <view class="chart-section">
+        <text class="section-title">收入构成</text>
+        <view class="chart-container">
+          <canvas canvas-id="incomeChart" class="chart-canvas"></canvas>
+        </view>
       </view>
     </view>
     
-    <!-- 底部固定操作栏（新增记录 / 分享账本 / 请求确认，不用滑到底） -->
-    <view class="bottom-action-bar">
-      <button class="bottom-action-button add-button" @click="addRecord">新增记录</button>
-      <button class="bottom-action-button share-button" @click="shareLedger">分享账本</button>
-      <button class="bottom-action-button confirm-button" @click="requestConfirmation">请求确认</button>
-    </view>
-    
-    <!-- 为你推荐的高薪稳定岗位 -->
-    <view class="recommended-jobs">
-      <view class="section-header">
-        <text class="section-title">为你推荐的高薪稳定岗位</text>
-      </view>
-      <view class="job-list">
-        <view class="job-item">
-          <text class="job-title">平车师傅</text>
-          <text class="job-salary">¥8000-10000/月</text>
-          <text class="job-company">苏州服装厂</text>
-          <button class="job-apply-button">立即报名</button>
-        </view>
-        <view class="job-item">
-          <text class="job-title">拷边工</text>
-          <text class="job-salary">¥7500-9500/月</text>
-          <text class="job-company">杭州制衣厂</text>
-          <button class="job-apply-button">立即报名</button>
-        </view>
-        <view class="job-item">
-          <text class="job-title">裁剪工</text>
-          <text class="job-salary">¥9000-12000/月</text>
-          <text class="job-company">上海服装公司</text>
-          <button class="job-apply-button">立即报名</button>
+    <!-- 对账凭证 Tab -->
+    <view v-if="currentTab === 'voucher'" class="tab-content">
+      <view class="voucher-section">
+        <text class="section-title">月度对账单</text>
+        <view class="voucher-card">
+          <text class="voucher-period">{{ currentMonth }}月</text>
+          <text class="voucher-income">总收入：¥{{ monthlyIncome + 2300 }}</text>
+          <text class="voucher-expense">总支出：¥2300</text>
+          <text class="voucher-net">纯收入：¥{{ monthlyIncome }}</text>
+          <button class="voucher-button" @click="generateVoucher">生成凭证</button>
+          <button class="voucher-button share" @click="shareVoucher">分享给老板</button>
         </view>
       </view>
+      
+
     </view>
     
     <!-- 确认状态对话框 -->
@@ -635,17 +413,25 @@ export default {
   },
   data() {
       return {
+        // 顶部Tab
+        tabs: [
+          { key: 'expense', name: '收支明细' },
+          { key: 'chart', name: '图表分析' },
+          { key: 'voucher', name: '对账凭证' }
+        ],
+        currentTab: 'expense',
+        
+        // 数据状态
         ledgerRecords: [],
-        selectedDate: null,
+        fixedExpenses: [],
+        filterType: 'all',
         dateRange: {
           start: null,
           end: null
         },
         currentDate: new Date(),
-        weekdays: ['日', '一', '二', '三', '四', '五', '六'],
-        currentMode: 'piece', // piece: 计件, time: 计时
-        ledgers: [], // 账本列表
-        currentLedgerId: 'personal', // 当前选中的账本ID
+        
+        // 对话框状态
         showConfirmationDialog: false,
         confirmationMessage: '',
         showEditDialog: false,
@@ -654,6 +440,7 @@ export default {
           description: '',
           amount: '',
           remark: '',
+          type: 'income',
           styleNumber: '',
           processName: '',
           quantity: '',
@@ -666,6 +453,7 @@ export default {
           description: '',
           amount: '',
           remark: '',
+          type: 'income',
           styleNumber: '',
           processName: '',
           quantity: '',
@@ -675,151 +463,51 @@ export default {
         },
         showDeleteDialog: false,
         recordToDelete: null,
+        showModal: false,
+        showContinuousModal: false,
+        
+        // 其他状态
         boundCompany: null,
         styleProcessMap: {},
         styleHistory: [],
         showDropdown: null,
-        // 操作提示
-        showActionTooltip: false,
-        tooltipText: '',
-        tooltipPosition: 'top',
-
-        // 款号展开状态
+        currentLedgerId: 'personal',
+        currentMode: 'piece',
         expandedStyles: [],
-        
-        // 实发工资
         salaryForm: {
           amount: '',
           remark: ''
         },
         savedSalary: null,
+        tooltipText: '',
+        tooltipPosition: 'top',
+        showActionTooltip: false,
+        currentBadge: null,
+        currentContinuousBadge: null,
         
-        // 收入超越榜
+        // 收入数据
         currentMonth: new Date().getMonth() + 1,
-        monthlyIncome: 0, // 本月用户纯收入（记工总收入-总支出）
-        exceedPercent: 0, // 超越同工种全国用户比例
-        workType: '', // 用户绑定的工种（如平车/拷边）
-        cityRank: 0, // 同城同工种排名百分比
-        dailyMax: 0, // 本月单日最高收入
-        showBadge: false, // 是否显示专属徽章
-        badgeName: '', // 徽章名称，如苏州平车大神
+        monthlyIncome: 10800, // 本月用户纯收入（记工总收入-总支出）
+        exceedPercent: 85, // 超越同工种全国用户比例
+        workType: '平车', // 用户绑定的工种（如平车/拷边）
+        cityRank: 15, // 同城同工种排名百分比
+        dailyMax: 800, // 本月单日最高收入
+        showBadge: true, // 是否显示专属徽章
+        badgeName: '苏州平车大神', // 徽章名称，如苏州平车大神
         
-        // 服装行业专属里程碑徽章体系
-        showModal: false, // 是否显示徽章详情弹窗
-        currentBadge: {}, // 当前查看的徽章
-        // 基础徽章配置，必须对接后端接口替换用户真实解锁状态
+        // 徽章数据
         badgeList: [
-          {
-            id: 1,
-            icon: '🎉',
-            name: '开工大吉',
-            desc: '开启你的搞钱之路，每一分汗水都有回报！',
-            condition: '首次完成记工',
-            unlocked: false
-          },
-          {
-            id: 2,
-            icon: '💰',
-            name: '第一桶金',
-            desc: '恭喜赚到第一笔记工收入，继续加油！',
-            condition: '首次记工收入满1000元',
-            unlocked: false
-          },
-          {
-            id: 3,
-            icon: '⚡',
-            name: '计件能手',
-            desc: '手脚太麻利了！这个月你比同行多做了不少！',
-            condition: '单月计件满500件',
-            unlocked: false
-          },
-          {
-            id: 4,
-            icon: '🔥',
-            name: '长红打工人',
-            desc: '连续28天记工无断更，太稳了！',
-            condition: '连续28天记工无断更',
-            unlocked: false
-          },
-          {
-            id: 5,
-            icon: '🏆',
-            name: '万元户',
-            desc: '单月收入破万，超过全国98%的服装同行！',
-            condition: '单月收入破万',
-            unlocked: false
-          },
-          {
-            id: 6,
-            icon: '👑',
-            name: '服装老法师',
-            desc: '连续6个月收入破8000，平台认证资深老师傅！',
-            condition: '连续6个月收入破8000',
-            unlocked: false
-          }
+          { id: 1, name: '新手徽章', icon: '🎯', desc: '完成首次记工', condition: '完成首次记工', unlocked: false },
+          { id: 2, name: '坚持徽章', icon: '🔥', desc: '连续记工7天', condition: '连续记工7天', unlocked: false },
+          { id: 3, name: '达人徽章', icon: '⭐', desc: '连续记工30天', condition: '连续记工30天', unlocked: false }
         ],
-        
-        // 连续记工进度
-        continuousDays: 0, // 对接后端用户真实连续记工天数
-        showContinuousModal: false, // 是否显示连续记工徽章详情弹窗
-        currentContinuousBadge: {}, // 当前查看的连续记工徽章
-        userCheckinRecord: [], // 用户记工日期列表，格式：['2026-03-01', '2026-03-02']
         continuousBadgeList: [
-          {
-            id: 1,
-            icon: '✅',
-            name: '开工稳人',
-            days: 7,
-            desc: '连续7天记工，开工稳定，值得信赖！',
-            privilege: '简历新增稳定标识，工厂优先筛选',
-            unlocked: false
-          },
-          {
-            id: 2,
-            icon: '🔥',
-            name: '周周满勤',
-            days: 14,
-            desc: '连续2周满勤，超过70%的工友！',
-            privilege: '报名岗位排名靠前20%',
-            unlocked: false
-          },
-          {
-            id: 3,
-            icon: '🏆',
-            name: '月度稳厂达人',
-            days: 28,
-            desc: '连续1个月稳定记工，工厂最爱的稳工人！',
-            privilege: '简历自动置顶，工厂优先查看',
-            unlocked: false
-          },
-          {
-            id: 4,
-            icon: '👑',
-            name: '季度长红打工人',
-            days: 90,
-            desc: '连续3个月稳定干活，平台认证高稳定工人！',
-            privilege: '高薪岗位内推通道，预支工资资格',
-            unlocked: false
-          },
-          {
-            id: 5,
-            icon: '⭐',
-            name: '半年稳定标杆',
-            days: 180,
-            desc: '连续半年稳定记工，稳定性拉满！',
-            privilege: '工厂优质工人专区置顶，100%面试回复',
-            unlocked: false
-          },
-          {
-            id: 6,
-            icon: '🥇',
-            name: '年度金牌稳工',
-            days: 365,
-            desc: '连续1年稳定记工，全平台标杆工人！',
-            privilege: '头部工厂直签绿色通道，免面试入职',
-            unlocked: false
-          }
-        ]
+          { id: 1, name: '初级记工', icon: '🌱', desc: '连续记工7天', days: 7, privilege: '优先推荐工作', unlocked: false },
+          { id: 2, name: '中级记工', icon: '🌿', desc: '连续记工30天', days: 30, privilege: '专属招聘通道', unlocked: false },
+          { id: 3, name: '高级记工', icon: '🌳', desc: '连续记工90天', days: 90, privilege: '工厂直聘', unlocked: false }
+        ],
+        continuousDays: 0,
+        userCheckinRecord: []
       }
     },
   computed: {
@@ -836,13 +524,24 @@ export default {
       return `${this.formatDate(this.dateRange.start)} 至 ${this.formatDate(this.dateRange.end)}`
     },
     filteredRecords() {
-      if (!this.dateRange.start || !this.dateRange.end) {
-        return this.ledgerRecords
+      let records = this.ledgerRecords
+      
+      // 按日期范围过滤
+      if (this.dateRange.start && this.dateRange.end) {
+        records = records.filter(record => {
+          const recordDate = new Date(record.date)
+          return recordDate >= this.dateRange.start && recordDate <= this.dateRange.end
+        })
       }
-      return this.ledgerRecords.filter(record => {
-        const recordDate = new Date(record.date)
-        return recordDate >= this.dateRange.start && recordDate <= this.dateRange.end
-      })
+      
+      // 按类型过滤
+      if (this.filterType === 'income') {
+        records = records.filter(record => record.type === 'income')
+      } else if (this.filterType === 'expense') {
+        records = records.filter(record => record.type === 'expense')
+      }
+      
+      return records
     },
     calendarDays() {
       const year = this.currentDate.getFullYear()
@@ -1068,92 +767,101 @@ export default {
     }
   },
   onLoad(options) {
-    // 接收并处理从employee-home.vue传递过来的ledgerId参数
-    if (options && options.ledgerId) {
-      this.currentLedgerId = options.ledgerId
-    }
     this.loadLedgerRecords()
+    this.loadFixedExpenses()
     this.loadUserInfo()
-    this.loadSavedSalary()
     this.getUserIncomeData()
-    this.getUserBadgeData()
-    this.getUserContinuousDays()
     this.generateExampleData()
-    this.checkFirstTimeUse()
+    
+    // 初始化滑动返回
+    this.initSwipeBack()
+  },
+  watch: {
+    currentTab(newTab) {
+      if (newTab === 'chart') {
+        // 延迟初始化图表，确保DOM已渲染
+        setTimeout(() => {
+          this.initCharts()
+        }, 100)
+      }
+    }
   },
   methods: {
+    // 加载账本记录
     loadLedgerRecords() {
-      // 初始化账本列表
-      this.initLedgers()
+      // 从 workRecords 中加载记录，与首页记账功能保持一致
+      const allRecords = uni.getStorageSync('workRecords') || []
       
-      // 加载当前账本的记录
-      const allRecords = uni.getStorageSync('ledgerRecords') || []
-      this.ledgerRecords = allRecords.filter(record => record.ledgerId === this.currentLedgerId) || []
-    },
-    
-    // 初始化账本列表
-    initLedgers() {
-      // 从本地存储加载账本列表
-      let storedLedgers = uni.getStorageSync('ledgers') || []
-      
-      // 检查是否存在默认个人账本
-      const personalLedgerIndex = storedLedgers.findIndex(ledger => ledger.id === 'personal')
-      
-      // 检查是否存在微信确认账本
-      const wechatLedgerIndex = storedLedgers.findIndex(ledger => ledger.id === 'wechat')
-      
-      if (personalLedgerIndex === -1 || wechatLedgerIndex === -1) {
-        // 如果缺少任何一个账本，重新创建完整的账本列表
-        storedLedgers = [
-          {
-            id: 'personal',
-            name: '个人账本',
-            type: 'personal',
-            created_at: new Date().toISOString()
-          },
-          {
-            id: 'wechat',
-            name: '微信确认账本',
-            type: 'wechat',
-            created_at: new Date().toISOString()
+      // 转换记录格式以匹配账本页面的需求
+      this.ledgerRecords = allRecords.map(record => {
+        let description = ''
+        let type = 'income'
+        
+        if (record.type === 'expense') {
+          type = 'expense'
+          description = record.category || '其他支出'
+        } else if (record.type === 'piecework') {
+          if (record.styleNumber && record.processName) {
+            description = `款号${record.styleNumber} - ${record.processName}`
+          } else if (record.product) {
+            description = record.product
+          } else {
+            description = '计件记录'
           }
-        ]
-        // 保存到本地存储
-        uni.setStorageSync('ledgers', storedLedgers)
-      } else {
-        // 如果存在默认账本，更新名称
-        if (storedLedgers[personalLedgerIndex].name !== '个人账本') {
-          storedLedgers[personalLedgerIndex].name = '个人账本'
+        } else if (record.type === 'hourly') {
+          description = '计时记录'
         }
-        if (storedLedgers[wechatLedgerIndex].name !== '微信确认账本') {
-          storedLedgers[wechatLedgerIndex].name = '微信确认账本'
+        
+        return {
+          id: record.id,
+          ledgerId: 'personal',
+          date: record.date,
+          description: description,
+          amount: record.amount.toString(),
+          type: type,
+          status: 'confirmed', // 默认标记为已确认
+          styleNumber: record.styleNumber || '',
+          processName: record.processName || '',
+          quantity: record.quantity?.toString() || '1',
+          unitPrice: record.unitPrice?.toString() || record.price?.toString() || '0',
+          remark: record.note || '',
+          hours: record.hours?.toString() || '',
+          hourlyWage: record.wage?.toString() || ''
         }
-        // 保存到本地存储
-        uni.setStorageSync('ledgers', storedLedgers)
-      }
-      
-      this.ledgers = storedLedgers
+      })
     },
     
-    // 切换账本
-    switchLedger(ledgerId) {
-      this.currentLedgerId = ledgerId
-      this.loadLedgerRecords()
-      this.loadSavedSalary()
+    // 加载固定支出
+    loadFixedExpenses() {
+      const fixedExpenses = uni.getStorageSync('fixedExpenses') || []
+      this.fixedExpenses = fixedExpenses
     },
     
-    // 切换记工模式
-    switchMode(mode) {
-      this.currentMode = mode
-      this.showAddDialog = true
+    // 跳转到固定支出管理
+    goToFixedExpenses() {
+      uni.navigateTo({ url: '/pages/worker/fixed-expenses' })
     },
     
-    // 显示我的特权
-    showPrivileges() {
+    // 生成凭证
+    generateVoucher() {
       uni.showToast({
-        title: '特权功能开发中',
+        title: '凭证生成成功',
+        icon: 'success'
+      })
+    },
+    
+    // 分享凭证
+    shareVoucher() {
+      uni.showToast({
+        title: '分享功能开发中',
         icon: 'none'
       })
+    },
+    
+    // 初始化图表
+    initCharts() {
+      // 图表初始化逻辑
+      console.log('初始化图表')
     },
     
     // 检查日期是否为今天
@@ -2279,18 +1987,7 @@ export default {
         remark: ''
       }
     },
-    addRecord() {
-      this.showAddDialog = true
-      this.addForm = {
-        description: '',
-        amount: '',
-        remark: '',
-        styleNumber: '',
-        processName: '',
-        quantity: '',
-        unitPrice: ''
-      }
-    },
+
     saveAdd() {
       let amount, description, newRecord
       
@@ -2675,6 +2372,20 @@ export default {
       uni.navigateBack()
     },
     
+    // 监听返回按钮
+    onBackPress() {
+      this.navigateBack();
+      return true;
+    },
+    
+    // 初始化滑动返回
+    initSwipeBack() {
+      // 在APP端启用原生滑动返回
+      if (uni.getSystemInfoSync().platform === 'android' || uni.getSystemInfoSync().platform === 'ios') {
+        uni.pageScrollTo({ scrollTop: 0, duration: 0 });
+      }
+    },
+    
     // 添加支出
     addExpense() {
       uni.showToast({
@@ -2694,134 +2405,76 @@ export default {
 
 <style scoped>
 .ledger-container {
-  padding: 20rpx;
+  padding: 0;
   background-color: #f5f5f5;
   min-height: 100vh;
   box-sizing: border-box;
 }
 
-/* 收入超越榜卡片 */
-.income-rank-card {
-  background: linear-gradient(135deg, #1677ff 0%, #4096ff 100%);
-  border-radius: 20rpx;
-  padding: 30rpx;
-  margin: 20rpx 0;
-  color: #fff;
-  box-shadow: 0 4rpx 16rpx rgba(22, 119, 255, 0.3);
-}
-
-.card-header {
+/* 顶部导航栏 */
+.top-nav {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20rpx;
+  background-color: #1677ff;
+  color: white;
+  padding: 20rpx 30rpx;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
-.title {
-  font-size: 28rpx;
-  font-weight: 600;
+.nav-title {
+  font-size: 32rpx;
+  font-weight: bold;
 }
 
-.date {
+.nav-back {
+  font-size: 32rpx;
+  cursor: pointer;
+}
+
+.add-btn {
   font-size: 24rpx;
-  opacity: 0.9;
-}
-
-.core-data {
-  text-align: center;
-  margin-bottom: 30rpx;
-}
-
-.income-label {
-  font-size: 24rpx;
-  opacity: 0.9;
-  display: block;
-  margin-bottom: 10rpx;
-}
-
-.income-value {
-  font-size: 56rpx;
-  font-weight: 700;
-  display: block;
-  margin-bottom: 20rpx;
-}
-
-.rank-tip {
-  display: inline-flex;
-  align-items: center;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 8rpx 16rpx;
   background: rgba(255, 255, 255, 0.2);
-  padding: 10rpx 20rpx;
-  border-radius: 30rpx;
-}
-
-.icon {
-  margin-right: 8rpx;
-  font-size: 24rpx;
-}
-
-.tip-text {
-  font-size: 24rpx;
-}
-
-.detail-compare {
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 16rpx;
-  padding: 20rpx 0;
-  margin-bottom: 20rpx;
-}
-
-.compare-item {
-  text-align: center;
-}
-
-.compare-label {
-  font-size: 22rpx;
-  opacity: 0.8;
-  display: block;
-  margin-bottom: 6rpx;
-}
-
-.compare-value {
-  font-size: 28rpx;
-  font-weight: 600;
-}
-
-.divider {
-  width: 1rpx;
-  height: 40rpx;
-  background: rgba(255, 255, 255, 0.3);
-}
-
-.exclusive-badge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 215, 0, 0.2);
-  border: 1rpx solid rgba(255, 215, 0, 0.5);
-  border-radius: 30rpx;
-  padding: 10rpx 20rpx;
-}
-
-.badge-icon {
-  margin-right: 8rpx;
-  font-size: 24rpx;
-}
-
-.badge-text {
-  font-size: 24rpx;
-  color: #ffd700;
-  font-weight: 600;
-}
-
-/* 服装行业专属里程碑徽章体系 */
-.badge-section {
-  background: #fff;
-  padding: 30rpx;
-  margin: 20rpx 0;
   border-radius: 20rpx;
+}
+
+/* 顶部固定3个tab */
+.main-tabs {
+  display: flex;
+  background: white;
+  border-bottom: 1rpx solid #e8e8e8;
+  position: sticky;
+  top: 88rpx;
+  z-index: 99;
+}
+
+.tab-item {
+  flex: 1;
+  padding: 25rpx 0;
+  text-align: center;
+  font-size: 28rpx;
+  color: #666;
+  border-bottom: 4rpx solid transparent;
+  transition: all 0.3s ease;
+}
+
+.tab-item.active {
+  color: #1677ff;
+  border-bottom-color: #1677ff;
+  font-weight: bold;
+}
+
+/* 固定支出管理 */
+.fixed-expenses-section {
+  background: white;
+  margin: 20rpx;
+  border-radius: 20rpx;
+  padding: 25rpx;
   box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
 }
 
@@ -2833,97 +2486,267 @@ export default {
 }
 
 .section-title {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #1a1a1a;
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
 }
 
-.section-subtitle {
+.section-action {
   font-size: 24rpx;
-  color: #999;
+  color: #1677ff;
+  cursor: pointer;
 }
 
-.badge-scroll {
-  white-space: nowrap;
+.fixed-expenses-list {
+  min-height: 200rpx;
 }
 
-.badge-item {
-  display: inline-block;
-  width: 160rpx;
-  text-align: center;
-  margin-right: 20rpx;
-  padding: 20rpx 10rpx;
-  border-radius: 16rpx;
-}
-
-.badge-item.unlocked {
-  background: linear-gradient(135deg, #fff7e6 0%, #ffefcc 100%);
-  border: 1rpx solid #ffd591;
-}
-
-.badge-item.locked {
-  background: #f5f7fa;
-  border: 1rpx solid #e8e8e8;
-  opacity: 0.6;
-}
-
-.badge-icon-wrapper {
-  width: 80rpx;
-  height: 80rpx;
-  border-radius: 50%;
-  background: #fff;
+.fixed-expense-item {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  margin: 0 auto 10rpx;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
 }
 
-.badge-icon {
-  font-size: 40rpx;
+.fixed-expense-item:last-child {
+  border-bottom: none;
 }
 
-.badge-name {
+.expense-name {
   font-size: 24rpx;
   color: #333;
-  display: block;
-  margin-bottom: 6rpx;
+  flex: 1;
 }
 
-.badge-status {
-  font-size: 20rpx;
+.expense-amount {
+  font-size: 26rpx;
+  font-weight: bold;
+  color: #ff4d4f;
+  margin: 0 20rpx;
+}
+
+.expense-date {
+  font-size: 22rpx;
   color: #999;
 }
 
-.badge-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 999;
+/* 收支明细 */
+.expense-detail-section {
+  background: white;
+  margin: 20rpx;
+  border-radius: 20rpx;
+  padding: 25rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
 }
 
-.modal-content {
-  width: 560rpx;
-  background: #fff;
+.filter-buttons {
+  display: flex;
+  gap: 10rpx;
+}
+
+.filter-btn {
+  padding: 8rpx 16rpx;
+  border: 2rpx solid #e8e8e8;
+  background: white;
   border-radius: 20rpx;
-  padding: 40rpx 30rpx;
+  font-size: 20rpx;
+  color: #666;
+}
+
+.filter-btn.active {
+  border-color: #1677ff;
+  color: #1677ff;
+  background: #f0f9ff;
+}
+
+.records-list {
+  min-height: 300rpx;
+}
+
+.record-item {
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.record-item:last-child {
+  border-bottom: none;
+}
+
+.record-description {
+  font-size: 24rpx;
+  color: #333;
+  margin-bottom: 8rpx;
+  display: block;
+}
+
+.record-amount {
+  font-size: 26rpx;
+  font-weight: bold;
+  color: #ff4d4f;
+  margin-bottom: 8rpx;
+  display: block;
+}
+
+.record-amount.income {
+  color: #52c41a;
+}
+
+.record-date {
+  font-size: 20rpx;
+  color: #999;
+  margin-bottom: 15rpx;
+  display: block;
+}
+
+.record-actions {
+  display: flex;
+  gap: 10rpx;
+}
+
+.edit-button, .delete-button {
+  padding: 8rpx 16rpx;
+  border: 1rpx solid #e8e8e8;
+  background: white;
+  border-radius: 10rpx;
+  font-size: 20rpx;
+  color: #666;
+}
+
+.delete-button {
+  color: #ff4d4f;
+  border-color: #ff4d4f;
+}
+
+/* 图表分析 */
+.chart-section {
+  background: white;
+  margin: 20rpx;
+  border-radius: 20rpx;
+  padding: 25rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+.chart-container {
+  height: 300rpx;
+  margin-top: 20rpx;
+}
+
+.chart-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/* 对账凭证 */
+.voucher-section {
+  background: white;
+  margin: 20rpx;
+  border-radius: 20rpx;
+  padding: 25rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+.voucher-card {
+  padding: 30rpx;
+  background: #f0f9ff;
+  border-radius: 15rpx;
   text-align: center;
 }
 
-.modal-header {
+.voucher-period {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #1677ff;
   margin-bottom: 20rpx;
+  display: block;
 }
 
-.modal-icon {
-  font-size: 60rpx;
+.voucher-income, .voucher-expense, .voucher-net {
+  font-size: 24rpx;
+  color: #333;
+  margin-bottom: 15rpx;
   display: block;
-  margin-bottom: 10rpx;
 }
+
+.voucher-net {
+  font-weight: bold;
+  color: #1677ff;
+  font-size: 28rpx;
+  margin-top: 10rpx;
+}
+
+.voucher-button {
+  width: 100%;
+  height: 80rpx;
+  border-radius: 10rpx;
+  font-size: 24rpx;
+  background: #1677ff;
+  color: white;
+  margin-top: 20rpx;
+}
+
+.voucher-button.share {
+  background: #52c41a;
+  margin-top: 10rpx;
+}
+
+
+
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 60rpx 0;
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  margin-bottom: 20rpx;
+  display: block;
+}
+
+.empty-text {
+  font-size: 24rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10rpx;
+  display: block;
+}
+
+.empty-desc {
+  font-size: 20rpx;
+  color: #999;
+  display: block;
+}
+
+/* 日期筛选区 */
+.date-range-selector {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 20rpx 0;
+  padding: 0 10rpx;
+}
+
+.range-button {
+  padding: 10rpx 20rpx;
+  background: #1677ff;
+  color: white;
+  border-radius: 20rpx;
+  font-size: 22rpx;
+  border: none;
+}
+
+.selected-range {
+  font-size: 22rpx;
+  color: #666;
+}
+
+/* 通用样式 */
+.tab-content {
+  padding-bottom: 20rpx;
+}
+
+
 
 .modal-title {
   font-size: 32rpx;

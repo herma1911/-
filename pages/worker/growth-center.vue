@@ -4,7 +4,7 @@
     <view class="top-nav">
       <view class="nav-bar">
         <text class="back-btn" @click="goBack">←</text>
-        <text class="page-title">我的搞钱成长</text>
+        <text class="page-title">搞钱成长计划</text>
         <text class="empty"></text>
       </view>
     </view>

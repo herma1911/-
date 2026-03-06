@@ -1,7 +1,7 @@
 <template>
   <view class="delivery-container">
     <view class="header">
-      <text class="title">交货管理</text>
+      <text class="title">交货登记</text>
     </view>
     
     <!-- 颜色数量汇总 -->
@@ -46,6 +46,24 @@
           <input type="text" v-model="deliveryInfo.remark" placeholder="请输入备注（选填）" class="form-input" />
         </view>
         <button class="add-btn" @click="addDeliveryItem">添加交货</button>
+        
+        <!-- 批量尺码输入 -->
+        <view class="batch-section">
+          <button class="batch-toggle-btn" @click="toggleBatchInput">
+            {{ showBatchInput ? '关闭批量尺码输入' : '打开批量尺码输入' }}
+          </button>
+          
+          <view v-if="showBatchInput" class="batch-input">
+            <text class="batch-title">批量尺码输入</text>
+            <view class="size-grid">
+              <view v-for="(item, index) in sizeQuantities" :key="index" class="size-item">
+                <text class="size-label">{{ item.size }}</text>
+                <input type="number" v-model.number="item.quantity" placeholder="0" class="size-input" />
+              </view>
+            </view>
+            <button class="batch-add-btn" @click="addBatchDeliveries">批量添加交货</button>
+          </view>
+        </view>
       </view>
     </view>
     
@@ -97,6 +115,17 @@ export default {
         quantity: 0,
         remark: ''
       },
+      // 批量尺码信息
+      sizeQuantities: [
+        { size: 'XS', quantity: 0 },
+        { size: 'S', quantity: 0 },
+        { size: 'M', quantity: 0 },
+        { size: 'L', quantity: 0 },
+        { size: 'XL', quantity: 0 },
+        { size: 'XXL', quantity: 0 }
+      ],
+      // 是否显示批量尺码输入
+      showBatchInput: false,
       // 已添加交货
       deliveryItems: [],
       // 订单库存信息
@@ -265,6 +294,65 @@ export default {
         // 在小程序环境下，提示用户
         uni.showToast({
           title: '导出功能仅在H5环境可用',
+          icon: 'none'
+        })
+      }
+    },
+    // 切换批量尺码输入
+    toggleBatchInput() {
+      this.showBatchInput = !this.showBatchInput
+    },
+    // 批量添加交货
+    addBatchDeliveries() {
+      if (!this.deliveryInfo.color) {
+        uni.showToast({
+          title: '请填写颜色',
+          icon: 'none'
+        })
+        return
+      }
+      
+      const selectedOrder = this.orders[this.orderIndex]
+      let addedCount = 0
+      
+      // 遍历所有尺码，添加有数量的尺码
+      this.sizeQuantities.forEach(item => {
+        if (item.quantity > 0) {
+          // 检查订单库存
+          if (this.orderInventory[selectedOrder] < item.quantity) {
+            uni.showToast({
+              title: `尺码${item.size}的交货数量超过订单库存`,
+              icon: 'none'
+            })
+            return
+          }
+          
+          // 添加到交货列表
+          this.deliveryItems.push({
+            order: selectedOrder,
+            color: this.deliveryInfo.color,
+            size: item.size,
+            quantity: item.quantity,
+            remark: this.deliveryInfo.remark
+          })
+          
+          addedCount++
+        }
+      })
+      
+      if (addedCount > 0) {
+        // 重置批量尺码数量
+        this.sizeQuantities.forEach(item => {
+          item.quantity = 0
+        })
+        
+        uni.showToast({
+          title: `成功添加${addedCount}个尺码的交货`,
+          icon: 'success'
+        })
+      } else {
+        uni.showToast({
+          title: '请至少填写一个尺码的数量',
           icon: 'none'
         })
       }
@@ -523,5 +611,74 @@ export default {
   font-size: 28rpx;
   border-radius: 10rpx;
   font-weight: bold;
+}
+
+/* 批量尺码输入样式 */
+.batch-section {
+  margin-top: 20rpx;
+}
+
+.batch-toggle-btn {
+  width: 100%;
+  height: 60rpx;
+  background-color: #f0f0f0;
+  color: #333;
+  font-size: 24rpx;
+  border-radius: 10rpx;
+  margin-bottom: 15rpx;
+}
+
+.batch-input {
+  background-color: #f9f9f9;
+  border-radius: 10rpx;
+  padding: 20rpx;
+}
+
+.batch-title {
+  font-size: 24rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 15rpx;
+  display: block;
+}
+
+.size-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15rpx;
+  margin-bottom: 20rpx;
+}
+
+.size-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.size-label {
+  font-size: 22rpx;
+  color: #666;
+  font-weight: 500;
+}
+
+.size-input {
+  width: 100%;
+  height: 60rpx;
+  border: 1rpx solid #ddd;
+  border-radius: 8rpx;
+  padding: 0 10rpx;
+  font-size: 22rpx;
+  text-align: center;
+}
+
+.batch-add-btn {
+  width: 100%;
+  height: 60rpx;
+  background-color: #4A90E2;
+  color: #fff;
+  font-size: 24rpx;
+  border-radius: 10rpx;
+  margin-top: 10rpx;
 }
 </style>

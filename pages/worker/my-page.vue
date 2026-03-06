@@ -1,89 +1,70 @@
 <template>
   <view class="my-page-container">
+    <!-- 顶部个人信息区 -->
     <view class="user-info-section">
       <view class="user-avatar" @click="goToPersonalInfo">
         <image v-if="userInfo.avatar" :src="userInfo.avatar" mode="aspectFill" class="avatar-image"></image>
         <text v-else class="avatar-icon">👤</text>
       </view>
       <view class="user-details">
-          <text v-if="userInfo.role === '工厂' || userInfo.role === '赫尔玛智能'" class="username">{{userInfo.nickname || userInfo.username || '未登录'}}</text>
-          <text class="user-role">{{userRole}}</text>
-          <view v-if="userInfo.role === '工厂' || userInfo.role === '赫尔玛智能'" class="user-status" :class="userInfo.status" @click="toggleStatus">
-            {{statusText}}
-          </view>
-        </view>
+        <text class="username">{{userInfo.nickname || userInfo.username || '未登录'}}</text>
+        <text class="user-role">{{userRole}} | {{userInfo.profession || '未设置'}}</text>
+        <text class="user-status" @click="toggleStatus">{{statusText}}</text>
+      </view>
+      <view class="skill-profile-btn" @click="navigateTo('/pages/worker/skill-profile')">
+        <text class="btn-icon">💼</text>
+        <text class="btn-text">技能档案</text>
+      </view>
     </view>
     
     <view class="menu-section">
+      <!-- 核心职业模块 -->
       <view class="menu-group">
-        <text class="menu-group-title">个人信息</text>
-        <view class="menu-item" @click="navigateTo('/pages/worker/personal-info')">
-          <text class="menu-icon">👤</text>
-          <text class="menu-text">个人信息</text>
-          <text class="menu-arrow">></text>
-        </view>
         <view class="menu-item" @click="navigateTo('/pages/worker/skill-profile')">
           <text class="menu-icon">💼</text>
           <text class="menu-text">技能档案</text>
           <text class="menu-arrow">></text>
         </view>
-        <view class="menu-item" @click="navigateTo('./ledger')">
-          <text class="menu-icon">📊</text>
-          <text class="menu-text">账本</text>
-          <text class="menu-arrow">></text>
-        </view>
-        <view class="menu-item" @click="navigateTo('./growth-center')">
-          <text class="menu-icon">🎯</text>
-          <text class="menu-text">我的搞钱成长</text>
-          <text class="menu-arrow">></text>
-        </view>
-        <view class="menu-item" @click="navigateTo('./referral-exclusive')">
+        <view class="menu-item" @click="navigateTo('/pages/worker/growth-center')">
           <text class="menu-icon">📈</text>
-          <text class="menu-text">喊上老乡，一起吃香</text>
+          <text class="menu-text">搞钱成长计划</text>
           <text class="menu-arrow">></text>
         </view>
       </view>
       
+      <!-- 财务管理模块 -->
       <view class="menu-group">
-        <text class="menu-group-title">收入管理</text>
-        <view class="menu-item" @click="navigateTo('./income-management')">
-          <text class="menu-icon">💰</text>
-          <text class="menu-text">收入管理</text>
-          <text class="menu-arrow">></text>
-        </view>
-        <view class="menu-item" @click="navigateTo('./income-management?tab=extra')">
+
+
+      </view>
+      
+      <!-- 辅助权益模块 -->
+      <view class="menu-group">
+        <view class="menu-item" @click="navigateTo('/pages/worker/my-benefits')">
           <text class="menu-icon">🎁</text>
-          <text class="menu-text">额外收入</text>
+          <text class="menu-text">我的权益</text>
           <text class="menu-arrow">></text>
         </view>
-        <view class="menu-item" @click="navigateTo('./income-analysis')">
-          <text class="menu-icon">📈</text>
-          <text class="menu-text">收入分析</text>
+        <view class="menu-item" @click="navigateTo('/pages/worker/referral-exclusive')">
+          <text class="menu-icon">👥</text>
+          <text class="menu-text">邀请好友</text>
           <text class="menu-arrow">></text>
         </view>
       </view>
       
-
-      
+      <!-- 模式切换模块 -->
       <view class="menu-group">
-        <text class="menu-group-title">账号管理</text>
-
-
-        <view v-if="userInfo.role !== '工厂'" class="menu-item" @click="applyForEnterprise">
-          <text class="menu-icon">🏭</text>
-          <text class="menu-text">申请成为工厂用户</text>
+        <view class="menu-item" @click="switchRole">
+          <text class="menu-icon">👤</text>
+          <text class="menu-text">身份切换</text>
           <text class="menu-arrow">></text>
         </view>
-        <view class="menu-item" @click="navigateTo('./privacy-settings')">
-          <text class="menu-icon">🔒</text>
-          <text class="menu-text">隐私设置</text>
+        <view class="menu-item" @click="navigateTo('/pages/worker/settings')">
+          <text class="menu-icon">⚙️</text>
+          <text class="menu-text">设置与反馈</text>
           <text class="menu-arrow">></text>
         </view>
-        <view class="menu-item" @click="navigateTo('./feedback')">
-          <text class="menu-icon">💬</text>
-          <text class="menu-text">意见反馈</text>
-          <text class="menu-arrow">></text>
-        </view>
+      </view>
         <view class="menu-item danger" @click="logout">
           <text class="menu-icon">🚪</text>
           <text class="menu-text">退出登录</text>
@@ -121,7 +102,8 @@ export default {
         default:
           return '设置状态';
       }
-    }
+    },
+
   },
   onLoad() {
     this.loadUserInfo()
@@ -137,6 +119,9 @@ export default {
         }, 500)
       }
     }
+    
+    // 初始化滑动返回
+    this.initSwipeBack()
   },
   methods: {
     loadUserInfo() {
@@ -147,17 +132,30 @@ export default {
         avatar: userInfo.avatar || userInfo.wechatInfo?.avatar || '',
         nickname: userInfo.nickname || userInfo.wechatInfo?.nickname || '',
         status: '',
+        gender: userInfo.gender || '',
         ...userInfo
       }
     },
+
     goToPersonalInfo() {
       uni.navigateTo({
         url: '/pages/worker/personal-info'
       })
     },
     navigateTo(url) {
+      console.log('导航到:', url)
       uni.navigateTo({
-        url: url
+        url: url,
+        success: () => {
+          console.log('导航成功')
+        },
+        fail: (err) => {
+          console.error('导航失败:', err)
+          uni.showToast({
+            title: '导航失败，请检查路径',
+            icon: 'none'
+          })
+        }
       })
     },
 
@@ -337,7 +335,23 @@ export default {
           })
         }
       })
+    },
+    
+    // 监听返回按钮
+    onBackPress() {
+      uni.navigateBack();
+      return true;
+    },
+    
+    // 初始化滑动返回
+    initSwipeBack() {
+      // 在APP端启用原生滑动返回
+      if (uni.getSystemInfoSync().platform === 'android' || uni.getSystemInfoSync().platform === 'ios') {
+        uni.pageScrollTo({ scrollTop: 0, duration: 0 });
+      }
     }
+    
+
 
   }
 }
@@ -352,35 +366,15 @@ export default {
   box-sizing: border-box;
 }
 
-/* 状态颜色 */
-.user-status.looking {
-  color: #00C851;
-  background-color: rgba(0, 200, 81, 0.1);
-}
-
-.user-status.exploring {
-  color: #FFB800;
-  background-color: rgba(255, 184, 0, 0.1);
-}
-
-.user-status.working {
-  color: #999999;
-  background-color: rgba(153, 153, 153, 0.1);
-}
-
-.user-status.parttime {
-  color: #4A90E2;
-  background-color: rgba(74, 144, 226, 0.1);
-}
-
-/* 用户信息区域（下方详细信息） */
-
+/* 顶部个人信息区 */
 .user-info-section {
   background-color: #FFFFFF;
   padding: 40rpx;
   display: flex;
   align-items: center;
   margin-bottom: 20rpx;
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
 }
 
 .user-avatar {
@@ -394,6 +388,12 @@ export default {
   margin-right: 30rpx;
   overflow: hidden;
   border: 2rpx solid #4A90E2;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.user-avatar:active {
+  transform: scale(0.95);
 }
 
 .avatar-icon {
@@ -403,21 +403,6 @@ export default {
 .avatar-image {
   width: 100%;
   height: 100%;
-}
-
-.user-status {
-  display: inline-block;
-  padding: 8rpx 16rpx;
-  border-radius: 20rpx;
-  font-size: 20rpx;
-  margin-top: 10rpx;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.user-status:active {
-  opacity: 0.8;
-  transform: scale(0.95);
 }
 
 .user-details {
@@ -435,33 +420,90 @@ export default {
 .user-role {
   font-size: 20rpx;
   color: #666666;
+  margin-bottom: 8rpx;
+}
+
+.user-gender {
+  font-size: 18rpx;
+  color: #4A90E2;
+  background-color: #E8F0FE;
+  padding: 4rpx 12rpx;
+  border-radius: 12rpx;
+  display: inline-block;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-right: 10rpx;
+  margin-bottom: 8rpx;
+}
+
+.user-gender:active {
+  background-color: #D6E4FF;
+  transform: scale(0.95);
+}
+
+.user-status {
+  font-size: 18rpx;
+  color: #4A90E2;
+  background-color: #E8F0FE;
+  padding: 4rpx 12rpx;
+  border-radius: 12rpx;
+  display: inline-block;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.user-status:active {
+  background-color: #D6E4FF;
+  transform: scale(0.95);
+}
+
+.skill-profile-btn {
+  background-color: #4A90E2;
+  color: white;
+  padding: 15rpx 25rpx;
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  font-size: 20rpx;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.skill-profile-btn:active {
+  background-color: #357ABD;
+  transform: scale(0.95);
+}
+
+.btn-icon {
+  margin-right: 8rpx;
+  font-size: 22rpx;
+}
+
+.btn-text {
+  font-weight: 500;
 }
 
 .menu-section {
   background-color: #FFFFFF;
   margin-bottom: 20rpx;
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+  overflow: hidden;
 }
 
 .menu-group {
-  padding: 20rpx 0;
+  border-bottom: 1rpx solid #F0F0F0;
 }
 
-.menu-group-title {
-  font-size: 20rpx;
-  color: #999999;
-  padding: 0 30rpx 15rpx;
+.menu-group:last-child {
+  border-bottom: none;
 }
 
 .menu-item {
   display: flex;
   align-items: center;
   padding: 25rpx 30rpx;
-  border-bottom: 1rpx solid #F0F0F0;
   transition: background-color 0.3s ease;
-}
-
-.menu-item:last-child {
-  border-bottom: none;
 }
 
 .menu-item:active {

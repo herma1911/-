@@ -41,6 +41,8 @@
 </template>
 
 <script>
+import { addToCandidatePool } from '../../utils/process-word-library.js'
+
 export default {
   data() {
     return {
@@ -93,6 +95,9 @@ export default {
         })
         return
       }
+      
+      // 将工序名添加到词库候选池
+      addToCandidatePool(worker.process)
       
       uni.showModal({
         title: '确认提交',

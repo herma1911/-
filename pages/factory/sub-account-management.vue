@@ -120,6 +120,35 @@
               </view>
             </view>
           </view>
+          
+          <!-- 功能模块权限设置 -->
+          <view class="form-item checkbox-group">
+            <text class="form-label">功能模块权限</text>
+            <view class="permission-list">
+              <view class="permission-item">
+                <checkbox :checked="formData.modulePermissions.includes('erp')" @change="toggleModulePermission('erp')" />
+                <text class="permission-label">ERP 相关功能</text>
+              </view>
+              <view class="permission-item">
+                <checkbox :checked="formData.modulePermissions.includes('mes')" @change="toggleModulePermission('mes')" />
+                <text class="permission-label">MES 相关功能</text>
+              </view>
+              <view class="permission-item">
+                <checkbox :checked="formData.modulePermissions.includes('system')" @change="toggleModulePermission('system')" />
+                <text class="permission-label">平台运营/系统管理</text>
+              </view>
+              <view class="permission-item">
+                <checkbox :checked="formData.modulePermissions.includes('custom')" @change="toggleModulePermission('custom')" />
+                <text class="permission-label">自定义模块</text>
+              </view>
+            </view>
+          </view>
+          
+          <!-- 部门分配 -->
+          <view class="form-item">
+            <text class="form-label">部门分配</text>
+            <input type="text" v-model="formData.department" placeholder="如：生产部、人事部、财务部" class="form-input" />
+          </view>
         </view>
         <view class="modal-footer">
           <button class="cancel-button" @click="closeAccountModal">取消</button>
@@ -144,8 +173,10 @@ export default {
         phone: '',
         role: '',
         position: '',
+        department: '',
         unlockQuota: 0,
-        permissions: []
+        permissions: [],
+        modulePermissions: []
       }
     }
   },
@@ -226,8 +257,10 @@ export default {
         phone: '',
         role: this.roles[0],
         position: '',
+        department: '',
         unlockQuota: 0,
-        permissions: []
+        permissions: [],
+        modulePermissions: []
       }
       this.setRolePermissions()
       this.showAccountModal = true
@@ -242,22 +275,27 @@ export default {
       switch(role) {
         case '工厂人事/招工管理员':
           this.formData.permissions = ['publishRecruitment', 'manageApplications', 'viewEmployeeInfo', 'unlockPhone', 'initiateDismissal']
+          this.formData.modulePermissions = ['system']
           this.formData.unlockQuota = 30
           break
         case '工厂财务':
           this.formData.permissions = ['viewFinancialData']
+          this.formData.modulePermissions = ['erp']
           this.formData.unlockQuota = 0
           break
         case '厂长':
           this.formData.permissions = ['publishRecruitment', 'manageApplications', 'viewEmployeeInfo', 'unlockPhone', 'initiateDismissal', 'viewProductionData']
+          this.formData.modulePermissions = ['erp', 'mes', 'system', 'custom']
           this.formData.unlockQuota = 50
           break
         case '组长':
           this.formData.permissions = ['setWage', 'generateInviteCode', 'viewTeamData', 'confirmReconciliation']
+          this.formData.modulePermissions = ['mes']
           this.formData.unlockQuota = 20
           break
         default:
           this.formData.permissions = []
+          this.formData.modulePermissions = []
           this.formData.unlockQuota = 0
       }
     },
@@ -268,8 +306,10 @@ export default {
         phone: account.phone,
         role: account.role || '',
         position: account.position,
+        department: account.department || '',
         unlockQuota: account.unlockQuota || 0,
-        permissions: [...(account.permissions || [])]
+        permissions: [...(account.permissions || [])],
+        modulePermissions: [...(account.modulePermissions || [])]
       }
       this.roleIndex = this.roles.indexOf(account.role) || 0
       this.showAccountModal = true
@@ -404,6 +444,14 @@ export default {
         this.formData.permissions.push(permission)
       } else {
         this.formData.permissions.splice(index, 1)
+      }
+    },
+    toggleModulePermission(module) {
+      const index = this.formData.modulePermissions.indexOf(module)
+      if (index === -1) {
+        this.formData.modulePermissions.push(module)
+      } else {
+        this.formData.modulePermissions.splice(index, 1)
       }
     },
     addOperationLog(action, target) {

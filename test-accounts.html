@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>账号类型测试</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      line-height: 1.6;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      border: none;
+      border-radius: 5px;
+      background-color: #4CAF50;
+      color: white;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .test-section {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    .log {
+      margin: 10px 0;
+      padding: 10px;
+      background-color: #f5f5f5;
+      border-radius: 5px;
+      font-family: monospace;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <h1>账号类型测试</h1>
+  
+  <div class="test-section">
+    <h2>测试工厂主账号</h2>
+    <p>设置工厂主账号数据并检查登录后的行为</p>
+    <button onclick="setFactoryOwnerAccount()">设置工厂主账号</button>
+  </div>
+  
+  <div class="test-section">
+    <h2>测试子账号</h2>
+    <p>设置子账号数据并检查登录后的行为</p>
+    <button onclick="setSubAccount()">设置子账号</button>
+  </div>
+  
+  <div class="test-section">
+    <h2>测试普通个人账号</h2>
+    <p>设置普通个人账号数据并检查登录后的行为</p>
+    <button onclick="setPersonalAccount()">设置普通个人账号</button>
+  </div>
+  
+  <div class="test-section">
+    <h2>查看当前账号数据</h2>
+    <button onclick="viewCurrentAccount()">查看当前账号</button>
+  </div>
+  
+  <div class="test-section">
+    <h2>测试日志</h2>
+    <div id="log" class="log"></div>
+  </div>
+
+  <script>
+    // 日志函数
+    function log(message) {
+      const logDiv = document.getElementById('log');
+      logDiv.innerHTML += message + '\n';
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+    
+    // 工厂主账号测试数据
+    function setFactoryOwnerAccount() {
+      const userInfo = {
+        role: '工厂主',
+        isEnterprise: true,
+        boundCompany: null,
+        nickname: '工厂主测试账号'
+      };
+      localStorage.setItem('userInfo', JSON.stringify(userInfo));
+      localStorage.removeItem('currentSubAccount');
+      log('=== 工厂主账号测试 ===');
+      log('工厂主账号测试数据已设置');
+      log('当前登录账号: ' + JSON.stringify(userInfo));
+      log('预期行为: 登录后跳转到工厂首页，显示完整功能模块，鸿蒙式编辑功能可用');
+    }
+    
+    // 子账号测试数据
+    function setSubAccount() {
+      const userInfo = {
+        role: '子账号',
+        isEnterprise: false,
+        boundCompany: { id: 1, name: '测试工厂' },
+        nickname: '子账号测试账号'
+      };
+      const subAccount = {
+        role: '子账号',
+        modulePermissions: ['recruitment', 'onboarding', 'employment']
+      };
+      localStorage.setItem('userInfo', JSON.stringify(userInfo));
+      localStorage.setItem('currentSubAccount', JSON.stringify(subAccount));
+      log('=== 子账号测试 ===');
+      log('子账号测试数据已设置');
+      log('当前登录账号: ' + JSON.stringify(userInfo));
+      log('子账号权限: ' + JSON.stringify(subAccount));
+      log('预期行为: 登录后跳转到工厂首页，只显示分配的模块，无编辑权限，可切换到个人端');
+    }
+    
+    // 普通个人账号测试数据
+    function setPersonalAccount() {
+      const userInfo = {
+        role: '个人',
+        isEnterprise: false,
+        boundCompany: null,
+        nickname: '个人账号测试账号'
+      };
+      localStorage.setItem('userInfo', JSON.stringify(userInfo));
+      localStorage.removeItem('currentSubAccount');
+      log('=== 普通个人账号测试 ===');
+      log('普通个人账号测试数据已设置');
+      log('当前登录账号: ' + JSON.stringify(userInfo));
+      log('预期行为: 登录后跳转到工人首页，完全不加载工厂端内容，控制台无报错');
+    }
+    
+    // 查看当前账号数据
+    function viewCurrentAccount() {
+      const userInfo = localStorage.getItem('userInfo');
+      const currentSubAccount = localStorage.getItem('currentSubAccount');
+      log('=== 当前账号数据 ===');
+      log('userInfo: ' + userInfo);
+      log('currentSubAccount: ' + currentSubAccount);
+    }
+    
+    // 初始化
+    log('=== 账号类型测试初始化 ===');
+    log('点击上方按钮设置不同账号类型的测试数据');
+    log('设置完成后，重新启动应用查看登录行为');
+  </script>
+</body>
+</html>

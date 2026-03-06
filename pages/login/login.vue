@@ -99,14 +99,18 @@ export default {
         initUserActivity(userId)
         recordUserActivity(userId, ACTIVITY_TYPES.LOGIN)
         
-        // 跳转到工人首页
-        uni.redirectTo({
-          url: '../worker/employee-home'
-        })
-        
+        // 显示登录成功提示并跳转页面
         uni.showToast({
           title: '微信登录成功',
-          icon: 'success'
+          icon: 'success',
+          duration: 1000,
+          success: function() {
+            setTimeout(function() {
+              uni.redirectTo({
+                url: '/pages/worker/employee-home'
+              })
+            }, 1000)
+          }
         })
       }, 1000)
     },
@@ -147,15 +151,18 @@ export default {
         
         uni.setStorageSync('userInfo', userInfo)
         
-        // 跳转到工厂首页
-        uni.redirectTo({
-          url: '../factory/factory-home'
-        })
-        
+        // 显示登录成功提示并跳转页面
         uni.showToast({
           title: '工厂登录成功',
           icon: 'success',
-          duration: 1000
+          duration: 1000,
+          success: function() {
+            setTimeout(function() {
+              uni.redirectTo({
+                url: '/pages/factory/factory-home'
+              })
+            }, 1000)
+          }
         })
       }, 1000)
     }

@@ -28,7 +28,7 @@
 		},
 
 		{
-			"path": "pages/home/home",
+			"path": "pages/index/index",
 			"style": {
 				"navigationBarTitleText": "首页",
 				"tabBar": {
@@ -66,7 +66,19 @@
 			"path": "pages/worker/piece-rate",
 			"style": {
 				"navigationBarTitleText": "工人计件"
-			}
+			},
+			"function_name": "工人计件",
+			"function_alias": "记计件、计件",
+			"voice_keywords": "记计件 计件 工人计件"
+		},
+		{
+			"path": "pages/worker/attendance",
+			"style": {
+				"navigationBarTitleText": "记考勤"
+			},
+			"function_name": "记考勤",
+			"function_alias": "考勤、记考勤",
+			"voice_keywords": "记考勤 考勤 工人考勤"
 		},
 		{
 			"path": "pages/worker/wechat-ledger",
@@ -102,7 +114,10 @@
 			"path": "pages/finance/expense-input",
 			"style": {
 				"navigationBarTitleText": "开支录入"
-			}
+			},
+			"function_name": "开支录入",
+			"function_alias": "记支出、支出",
+			"voice_keywords": "记支出 支出 开支录入"
 		},
 		{
 			"path": "pages/finance/profit-dashboard",
@@ -150,7 +165,10 @@
 			"path": "pages/social/publish-recruitment",
 			"style": {
 				"navigationBarTitleText": "发布招聘"
-			}
+			},
+			"function_name": "发布招聘",
+			"function_alias": "招聘、招工",
+			"voice_keywords": "发布招聘 招聘 招工"
 		},
 		{
 			"path": "pages/social/resume-list",
@@ -260,7 +278,7 @@
 		{
 			"path": "pages/worker/delivery",
 			"style": {
-				"navigationBarTitleText": "交货管理"
+				"navigationBarTitleText": "交货登记"
 			}
 		},
 		{
@@ -315,6 +333,12 @@
 			"path": "pages/approval/referral-dashboard",
 			"style": {
 				"navigationBarTitleText": "拉新数据看板"
+			}
+		},
+		{
+			"path": "pages/approval/evaluation-management",
+			"style": {
+				"navigationBarTitleText": "评价管理"
 			}
 		},
 
@@ -424,7 +448,8 @@
 						"buttons": []
 					}
 				},
-				"navigationStyle": "custom"
+				"navigationStyle": "custom",
+				"tabBar": false
 			}
 		},
 		{
@@ -468,13 +493,19 @@
 			"path": "pages/factory/onboarding-process",
 			"style": {
 				"navigationBarTitleText": "线上入职"
-			}
+			},
+			"function_name": "线上入职",
+			"function_alias": "入职",
+			"voice_keywords": "线上入职 入职"
 		},
 		{
 			"path": "pages/factory/reconciliation-management",
 			"style": {
-				"navigationBarTitleText": "对账结算"
-			}
+				"navigationBarTitleText": "对账审核中心"
+			},
+			"function_name": "对账审核中心",
+			"function_alias": "对账、审核、结算",
+			"voice_keywords": "对账审核中心 对账 审核 结算"
 		},
 		{
 			"path": "pages/factory/ledger-management",
@@ -492,6 +523,36 @@
 			"path": "pages/factory/efficiency-tools",
 			"style": {
 				"navigationBarTitleText": "效率工具"
+			}
+		},
+		{
+			"path": "pages/factory/my-level",
+			"style": {
+				"navigationBarTitleText": "我的等级"
+			}
+		},
+		{
+			"path": "pages/factory/fast-track-certification",
+			"style": {
+				"navigationBarTitleText": "B级快速认证通道"
+			}
+		},
+		{
+			"path": "pages/factory/points-center",
+			"style": {
+				"navigationBarTitleText": "积分中心"
+			}
+		},
+		{
+			"path": "pages/factory/recruitment-code",
+			"style": {
+				"navigationBarTitleText": "招工入职码"
+			}
+		},
+		{
+			"path": "pages/factory/poster-tool",
+			"style": {
+				"navigationBarTitleText": "海报工具"
 			}
 		},
 		{
@@ -569,13 +630,111 @@
 		{
 			"path": "pages/worker/growth-center",
 			"style": {
-				"navigationBarTitleText": "我的搞钱成长"
+				"navigationBarTitleText": "搞钱成长计划"
+			}
+		},
+		{
+			"path": "pages/worker/fixed-expenses",
+			"style": {
+				"navigationBarTitleText": "固定支出"
+			}
+		},
+		{
+			"path": "pages/worker/data-report",
+			"style": {
+				"navigationBarTitleText": "数据报表"
+			}
+		},
+		{
+			"path": "pages/worker/mode-switch",
+			"style": {
+				"navigationBarTitleText": "模式切换"
+			}
+		},
+		{
+			"path": "pages/worker/settings",
+			"style": {
+				"navigationBarTitleText": "设置"
 			}
 		},
 		{
 			"path": "pages/social/seasonal-jobs",
 			"style": {
 				"navigationBarTitleText": "旺季高薪推荐"
+			}
+		},
+		{
+			"path": "pages/social/my-applications",
+			"style": {
+				"navigationBarTitleText": "我的求职",
+				"app-plus": {
+					"titleNView": {
+						"buttons": [] // 清空原生导航栏按钮，包括返回键
+					}
+				},
+				"navigationStyle": "custom" // 自定义导航栏，原生返回键消失
+			}
+		},
+		{
+			"path": "pages/worker/income-calculator",
+			"style": {
+				"navigationBarTitleText": "测收入"
+			}
+		},
+		{
+			"path": "pages/worker/income-boost",
+			"style": {
+				"navigationBarTitleText": "提收入"
+			}
+		},
+		// 工厂端IE提效管理模块
+		{
+			"path": "pages/factory/ie-management",
+			"style": {
+				"navigationBarTitleText": "IE提效管理"
+			}
+		},
+		{
+			"path": "pages/factory/standard-time-setting",
+			"style": {
+				"navigationBarTitleText": "标准工时制定"
+			}
+		},
+		{
+			"path": "pages/factory/price-calculator",
+			"style": {
+				"navigationBarTitleText": "工价智能测算"
+			}
+		},
+		{
+			"path": "pages/factory/production-line-balance",
+			"style": {
+				"navigationBarTitleText": "产线平衡分析"
+			}
+		},
+		{
+			"path": "pages/factory/worker-action-guide",
+			"style": {
+				"navigationBarTitleText": "工人动作指导"
+			}
+		},
+		{
+			"path": "pages/factory/ie-community",
+			"style": {
+				"navigationBarTitleText": "工厂精益提效社区"
+			}
+		},
+		{
+			"path": "pages/factory/smart-scheduling",
+			"style": {
+				"navigationBarTitleText": "智能排产"
+			}
+		},
+		{
+			"path": "pages/expense/quickAdd",
+			"style": {
+				"navigationBarTitleText": "",
+				"navigationBarHidden": true
 			}
 		}
 	],
@@ -590,18 +749,6 @@
 		"backgroundColor": "#fff",
 		"borderStyle": "black",
 		"list": [
-			{
-				"pagePath": "pages/home/home",
-				"text": "首页",
-				"iconPath": "static/tab-home.png",
-				"selectedIconPath": "static/tab-home-active.png"
-			},
-			{
-				"pagePath": "pages/order/order-list",
-				"text": "订单",
-				"iconPath": "static/tab-order.png",
-				"selectedIconPath": "static/tab-order-active.png"
-			},
 			{
 				"pagePath": "pages/worker/piece-rate",
 				"text": "计件",

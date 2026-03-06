@@ -36,14 +36,24 @@
             v-for="worker in workersToOnboard" 
             :key="worker.id"
             :class="['worker-item', { selected: selectedWorkers.includes(worker.id) }]"
-            @click="toggleWorkerSelection(worker.id)"
           >
             <view class="worker-info">
               <text class="worker-name">{{ worker.name }}</text>
               <text class="worker-position">{{ worker.position }}</text>
               <text class="worker-hire-date">录用日期：{{ formatDate(worker.hireDate) }}</text>
+              <view class="work-type-section">
+                <text class="work-type-label">用工类型：</text>
+                <picker 
+                  :value="worker.workTypeIndex || 0" 
+                  :range="workTypes" 
+                  @change="onWorkTypeChange($event, worker.id)"
+                  class="work-type-picker"
+                >
+                  <text class="picker-text">{{ workTypes[worker.workTypeIndex || 0] }}</text>
+                </picker>
+              </view>
             </view>
-            <view class="selection-checkbox">
+            <view class="selection-checkbox" @click="toggleWorkerSelection(worker.id)">
               <text v-if="selectedWorkers.includes(worker.id)">✓</text>
             </view>
           </view>
@@ -190,10 +200,11 @@ export default {
       salaryTotal: '',
       showCompletion: false,
       completionMessage: '',
+      workTypes: ['纯计件', '纯计时', '计件+计时混合'],
       workersToOnboard: [
-        { id: 1, name: '张三', position: '缝纫工', hireDate: '2024-08-01', status: 'hired' },
-        { id: 2, name: '李四', position: '质检员', hireDate: '2024-08-05', status: 'hired' },
-        { id: 3, name: '王五', position: '拷边工', hireDate: '2024-08-10', status: 'hired' }
+        { id: 1, name: '张三', position: '缝纫工', hireDate: '2024-08-01', status: 'hired', workTypeIndex: 0, workType: 1 },
+        { id: 2, name: '李四', position: '质检员', hireDate: '2024-08-05', status: 'hired', workTypeIndex: 1, workType: 2 },
+        { id: 3, name: '王五', position: '拷边工', hireDate: '2024-08-10', status: 'hired', workTypeIndex: 2, workType: 3 }
       ],
       eligibleWorkers: [
         { id: 1, name: '张三', position: '缝纫工', onboardDate: '2024-08-02', salaryDate: '2024-08-30' },
@@ -219,6 +230,14 @@ export default {
         this.selectedEligibleWorkers.splice(index, 1)
       } else {
         this.selectedEligibleWorkers.push(workerId)
+      }
+    },
+    onWorkTypeChange(e, workerId) {
+      const workTypeIndex = e.detail.value
+      const worker = this.workersToOnboard.find(w => w.id === workerId)
+      if (worker) {
+        worker.workTypeIndex = workTypeIndex
+        worker.workType = workTypeIndex + 1 // 1=纯计件, 2=纯计时, 3=混合用工
       }
     },
     markWorkersArrived() {
@@ -507,6 +526,32 @@ export default {
   font-size: 18rpx;
   color: #999;
   display: block;
+}
+
+/* 用工类型选择 */
+.work-type-section {
+  display: flex;
+  align-items: center;
+  margin-top: 8rpx;
+}
+
+.work-type-label {
+  font-size: 18rpx;
+  color: #666;
+  width: 100rpx;
+}
+
+.work-type-picker {
+  flex: 1;
+  border: 2rpx solid #e0e0e0;
+  border-radius: 8rpx;
+  padding: 8rpx 12rpx;
+  font-size: 18rpx;
+  background-color: #f9f9f9;
+}
+
+.picker-text {
+  color: #333;
 }
 
 .selection-checkbox {

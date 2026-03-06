@@ -144,20 +144,20 @@ export default {
       // 搜索过滤
       if (this.searchKeyword) {
         const keyword = this.searchKeyword.toLowerCase()
-        result = result.filter(eval => 
-          eval.comment.toLowerCase().includes(keyword) ||
-          eval.evaluatorName.toLowerCase().includes(keyword) ||
-          eval.factoryName.toLowerCase().includes(keyword)
+        result = result.filter(item => 
+          item.comment.toLowerCase().includes(keyword) ||
+          item.evaluatorName.toLowerCase().includes(keyword) ||
+          item.factoryName.toLowerCase().includes(keyword)
         )
       }
       
       // 状态过滤
       if (this.statusIndex === 1) {
-        result = result.filter(eval => eval.appealStatus === 'none')
+        result = result.filter(item => item.appealStatus === 'none')
       } else if (this.statusIndex === 2) {
-        result = result.filter(eval => eval.appealStatus === 'appealing')
+        result = result.filter(item => item.appealStatus === 'appealing')
       } else if (this.statusIndex === 3) {
-        result = result.filter(eval => eval.appealStatus === 'approved' || eval.appealStatus === 'rejected')
+        result = result.filter(item => item.appealStatus === 'approved' || item.appealStatus === 'rejected')
       }
       
       return result

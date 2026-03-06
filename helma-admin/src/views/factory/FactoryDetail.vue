@@ -194,7 +194,7 @@ const factoryInfo = ref({
     certificationTime: '2024-01-05'
   },
   medals: {
-    list: ['诚信经营', '优质工厂', '高活跃度'],
+    list: ['诚信经营', 'A级优质稳定工厂', '高活跃度'],
     privileges: ['流量加权', '简历置顶', '套餐折扣'],
     trafficRecords: ['2024-01-10', '2024-01-15', '2024-01-20']
   }

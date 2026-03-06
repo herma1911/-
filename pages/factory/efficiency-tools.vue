@@ -10,11 +10,6 @@
     <view class="overview-section">
       <text class="section-title">🛠️ 工具概览</text>
       <view class="tool-cards">
-        <view class="tool-card" @click="switchTool('recruitment-accounting')">
-          <text class="tool-icon">💰</text>
-          <text class="tool-title">招工记账</text>
-          <text class="tool-desc">招工费用管理</text>
-        </view>
         <view class="tool-card" @click="switchTool('lightweight-mes')">
           <text class="tool-icon">🏭</text>
           <text class="tool-title">轻量化MES</text>
@@ -30,75 +25,6 @@
     
     <!-- 工具内容区域 -->
     <view class="tool-content">
-      <!-- 招工记账 -->
-      <view v-if="activeTool === 'recruitment-accounting'" class="recruitment-accounting">
-        <text class="content-title">💰 招工记账</text>
-        
-        <!-- 记账表单 -->
-        <view class="accounting-form">
-          <view class="form-group">
-            <text class="form-label">费用类型</text>
-            <picker @change="handleTypeChange" :range="expenseTypes" :value="expenseTypeIndex">
-              <view class="picker-display">
-                {{ expenseTypes[expenseTypeIndex] }}
-              </view>
-            </picker>
-          </view>
-          
-          <view class="form-group">
-            <text class="form-label">金额 (元)</text>
-            <input type="number" v-model="expenseAmount" placeholder="请输入金额" class="form-input" />
-          </view>
-          
-          <view class="form-group">
-            <text class="form-label">日期</text>
-            <input type="date" v-model="expenseDate" class="form-input" />
-          </view>
-          
-          <view class="form-group">
-            <text class="form-label">备注</text>
-            <textarea v-model="expenseNote" placeholder="请输入备注信息" class="form-textarea"></textarea>
-          </view>
-          
-          <button class="submit-btn" @click="addExpense">添加记录</button>
-        </view>
-        
-        <!-- 费用记录列表 -->
-        <view class="expense-list">
-          <text class="list-title">费用记录</text>
-          <view v-if="expenseRecords.length === 0" class="empty-list">
-            <text>暂无费用记录</text>
-          </view>
-          <view v-for="(record, index) in expenseRecords" :key="index" class="expense-item">
-            <view class="expense-info">
-              <text class="expense-type">{{ record.type }}</text>
-              <text class="expense-date">{{ record.date }}</text>
-              <text class="expense-note">{{ record.note }}</text>
-            </view>
-            <text class="expense-amount">¥{{ record.amount }}</text>
-          </view>
-        </view>
-        
-        <!-- 费用统计 -->
-        <view class="expense-stats">
-          <text class="stats-title">费用统计</text>
-          <view class="stats-grid">
-            <view class="stats-item">
-              <text class="stats-value">¥{{ totalExpense }}</text>
-              <text class="stats-label">本月总支出</text>
-            </view>
-            <view class="stats-item">
-              <text class="stats-value">{{ expenseRecords.length }}</text>
-              <text class="stats-label">记录条数</text>
-            </view>
-            <view class="stats-item">
-              <text class="stats-value">¥{{ averageExpense }}</text>
-              <text class="stats-label">平均支出</text>
-            </view>
-          </view>
-        </view>
-      </view>
-      
       <!-- 轻量化MES -->
       <view v-if="activeTool === 'lightweight-mes'" class="lightweight-mes">
         <text class="content-title">🏭 轻量化MES</text>
@@ -246,15 +172,7 @@
 export default {
   data() {
     return {
-      activeTool: 'recruitment-accounting',
-      
-      // 招工记账数据
-      expenseTypes: ['线上推广', '线下招聘', '中介费用', '其他'],
-      expenseTypeIndex: 0,
-      expenseAmount: '',
-      expenseDate: new Date().toISOString().split('T')[0],
-      expenseNote: '',
-      expenseRecords: [],
+      activeTool: 'lightweight-mes',
       
       // 轻量化MES数据
       productionTasks: [],
@@ -288,17 +206,14 @@ export default {
       ]
     }
   },
-  onLoad() {
+  onLoad(options) {
+    // 根据URL参数设置默认工具
+    if (options && options.tool) {
+      this.activeTool = options.tool
+    }
     this.loadData()
   },
   computed: {
-    totalExpense() {
-      return this.expenseRecords.reduce((sum, record) => sum + record.amount, 0).toFixed(2)
-    },
-    averageExpense() {
-      if (this.expenseRecords.length === 0) return 0
-      return (this.totalExpense / this.expenseRecords.length).toFixed(2)
-    },
     pendingTasks() {
       return this.productionTasks.filter(task => task.status === 'pending').length
     },
@@ -317,65 +232,36 @@ export default {
       this.activeTool = tool
     },
     loadData() {
-      // 加载招工记账数据
-      this.expenseRecords = uni.getStorageSync('expenseRecords') || [
-        { type: '线上推广', amount: 500, date: '2026-07-01', note: '招聘平台推广费' },
-        { type: '线下招聘', amount: 300, date: '2026-07-05', note: '招聘会摊位费' },
-        { type: '中介费用', amount: 800, date: '2026-07-10', note: '中介介绍费' }
-      ]
-      
       // 加载生产任务数据
       this.productionTasks = uni.getStorageSync('productionTasks') || [
-        { 
-          name: '服装生产', 
-          description: '夏季T恤生产', 
-          startTime: '2026-07-01', 
-          endTime: '2026-07-15', 
+        {
+          id: 1,
+          name: '服装生产',
+          description: '夏季T恤生产',
+          startTime: '2026-07-01',
+          endTime: '2026-07-15',
           status: 'completed',
           statusText: '已完成'
         },
-        { 
-          name: '包装任务', 
-          description: '产品包装', 
-          startTime: '2026-07-10', 
-          endTime: '2026-07-20', 
+        {
+          id: 2,
+          name: '包装任务',
+          description: '产品包装',
+          startTime: '2026-07-10',
+          endTime: '2026-07-20',
           status: 'in_progress',
           statusText: '进行中'
         },
-        { 
-          name: '质量检测', 
-          description: '产品质量检测', 
-          startTime: '2026-07-15', 
-          endTime: '2026-07-25', 
+        {
+          id: 3,
+          name: '质量检测',
+          description: '产品质量检测',
+          startTime: '2026-07-15',
+          endTime: '2026-07-25',
           status: 'pending',
           statusText: '待处理'
         }
       ]
-    },
-    handleTypeChange(e) {
-      this.expenseTypeIndex = e.detail.value
-    },
-    addExpense() {
-      if (!this.expenseAmount || isNaN(this.expenseAmount)) {
-        uni.showToast({ title: '请输入有效的金额', icon: 'none' })
-        return
-      }
-      
-      const newRecord = {
-        type: this.expenseTypes[this.expenseTypeIndex],
-        amount: parseFloat(this.expenseAmount),
-        date: this.expenseDate,
-        note: this.expenseNote
-      }
-      
-      this.expenseRecords.unshift(newRecord)
-      uni.setStorageSync('expenseRecords', this.expenseRecords)
-      
-      // 重置表单
-      this.expenseAmount = ''
-      this.expenseNote = ''
-      
-      uni.showToast({ title: '添加成功', icon: 'success' })
     },
     showAddTaskModal() {
       this.newTask = {

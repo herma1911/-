@@ -42,14 +42,18 @@ function getUserWeight(userLevel) {
   }
 }
 
-// 获取工厂权重
+// 获取工厂权重（保留用于员工评价）
 function getFactoryWeight(factoryLevel) {
   switch (factoryLevel) {
-    case 'premium':
+    case 'S':
       return 1.5
-    case 'normal':
+    case 'A':
+      return 1.2
+    case 'B':
       return 1.0
-    case 'potential':
+    case 'C':
+      return 0.8
+    case 'D':
       return 0.5
     default:
       return 1.0
@@ -1126,17 +1130,6 @@ export function checkWorkerPremiumEligibility(workerId) {
   return workerEval.weightedScore >= 4.2
 }
 
-// 检查工厂是否符合升级优质工厂条件
-export function checkFactoryPremiumEligibility(factoryId) {
-  const factoryEval = getFactoryEvaluation(factoryId)
-  if (!factoryEval || factoryEval.totalEvaluations < 1) {
-    return false
-  }
-  
-  // 综合评价得分≥4.2星
-  return factoryEval.weightedScore >= 4.2
-}
-
 // 检查员工是否需要降级
 export function checkWorkerDemotion(workerId) {
   const workerEval = getWorkerEvaluation(workerId)
@@ -1147,18 +1140,6 @@ export function checkWorkerDemotion(workerId) {
   // 综合评价得分连续3个月低于3.5星
   // 这里简化实现，只检查当前得分
   return workerEval.weightedScore < 3.5
-}
-
-// 检查工厂是否需要降级
-export function checkFactoryDemotion(factoryId) {
-  const factoryEval = getFactoryEvaluation(factoryId)
-  if (!factoryEval || factoryEval.totalEvaluations < 1) {
-    return false
-  }
-  
-  // 综合评价得分连续3个月低于3.5星
-  // 这里简化实现，只检查当前得分
-  return factoryEval.weightedScore < 3.5
 }
 
 // 获取用户/工厂的评价等级

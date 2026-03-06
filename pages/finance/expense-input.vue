@@ -118,6 +118,7 @@
 </template>
 
 <script>
+
 export default {
   data() {
     return {
@@ -210,14 +211,15 @@ export default {
       } else {
         // 默认快捷项
         this.quickExpenses = [
-          { id: 1, amount: 15, label: '吃饭', category: '餐饮' },
+          { id: 1, amount: 30, label: '餐饮', category: '餐饮' },
           { id: 2, amount: 10, label: '交通', category: '交通' },
-          { id: 3, amount: 50, label: '日用品', category: '日用品' },
-          { id: 4, amount: 30, label: '午餐', category: '餐饮' }
+          { id: 3, amount: 50, label: '购物', category: '日用品' },
+          { id: 4, amount: 20, label: '其他', category: '其他' }
         ]
         this.saveQuickExpenses()
       }
     },
+
     // 保存快捷支出项
     saveQuickExpenses() {
       uni.setStorageSync('quickExpenses', this.quickExpenses)

@@ -1,7 +1,10 @@
 <template>
   <view class="order-list-container">
     <view class="header">
-      <text class="title">订单列表</text>
+      <view class="header-left">
+        <text class="back-icon" @click="navigateBack">←</text>
+        <text class="title">订单列表</text>
+      </view>
       <button class="add-btn" @click="addOrder">+ 新增订单</button>
     </view>
     <view class="search-bar">
@@ -47,6 +50,9 @@ export default {
     this.loadOrders()
   },
   methods: {
+    navigateBack() {
+      uni.navigateBack()
+    },
     loadOrders() {
       const savedOrders = uni.getStorageSync('orders') || []
       if (savedOrders.length > 0) {
@@ -56,35 +62,58 @@ export default {
         this.orders = [
           {
             id: 1,
-            styleNumber: '款号A',
+            styleNumber: '订单001',
             totalPrice: 100,
             status: '待拆分',
             quantity: 1000,
+            quantityA: 500,
+            quantityB: 300,
+            quantityC: 200,
+            colorA: '红色',
+            colorB: '蓝色',
+            colorC: '黑色',
             suggestedStartTime: '2026-02-20',
             actualStartTime: '',
-            actualEndTime: ''
+            actualEndTime: '',
+            productionLine: '产线1'
           },
           {
             id: 2,
-            styleNumber: '款号B',
+            styleNumber: '订单002',
             totalPrice: 120,
             status: '已拆分',
             quantity: 1500,
+            quantityA: 800,
+            quantityB: 400,
+            quantityC: 300,
+            colorA: '白色',
+            colorB: '灰色',
+            colorC: '棕色',
             suggestedStartTime: '2026-02-22',
             actualStartTime: '2026-02-22',
-            actualEndTime: ''
+            actualEndTime: '',
+            productionLine: '产线2'
           },
           {
             id: 3,
-            styleNumber: '款号C',
+            styleNumber: '订单003',
             totalPrice: 80,
             status: '待审批',
             quantity: 800,
+            quantityA: 400,
+            quantityB: 200,
+            quantityC: 200,
+            colorA: '绿色',
+            colorB: '黄色',
+            colorC: '紫色',
             suggestedStartTime: '2026-02-25',
             actualStartTime: '',
-            actualEndTime: ''
+            actualEndTime: '',
+            productionLine: '产线1'
           }
         ]
+        // 保存默认订单到本地存储
+        uni.setStorageSync('orders', this.orders)
       }
     },
     addOrder() {
@@ -192,6 +221,18 @@ export default {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20rpx;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.back-icon {
+  font-size: 36rpx;
+  color: #333;
+  cursor: pointer;
 }
 
 .title {

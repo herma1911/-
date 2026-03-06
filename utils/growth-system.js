@@ -12,7 +12,6 @@ const growthLevels = {
     benefits: [
       '可查看本省/当前所在市的服装旺季推荐',
       '可查看基础旺季时间、对应工种工价区间',
-      '每日最多可查看10个匹配的旺季岗位',
       '可使用基础招工筛选、记工记账全部基础功能'
     ]
   },
@@ -29,6 +28,7 @@ const growthLevels = {
       '新手工友全部权益',
       '可查看周边3个省份的完整旺季推荐地图',
       '可查看对应地区工厂的完整发薪信用记录、工人对账确认率',
+      '可查看工厂发薪记录特权',
       '每日最多可查看30个精准匹配的旺季岗位',
       '可查看未来1个月的旺季预告，提前锁定高薪岗位',
       '报名旺季岗位，简历优先展示给工厂'
@@ -181,13 +181,13 @@ function getLevelRequirements(level) {
 function getMaxRecommendations(level) {
   switch (level) {
     case 'new':
-      return 10;
+      return 999;
     case 'active':
-      return 30;
+      return 999;
     case 'senior':
       return 999;
     default:
-      return 10;
+      return 999;
   }
 }
 

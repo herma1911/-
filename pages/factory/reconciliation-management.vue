@@ -2,7 +2,7 @@
   <view class="reconciliation-management-container">
     <view class="header">
       <text class="back-btn" @click="navigateBack">←</text>
-      <text class="title">对账结算管理</text>
+      <text class="title">对账审核中心</text>
       <text class="empty"></text>
     </view>
     
@@ -21,18 +21,40 @@
         <text class="stat-label">已驳回对账</text>
       </view>
       <view class="stat-card">
-        <text class="stat-number">{{ totalReconciliations }}</text>
-        <text class="stat-label">总对账数</text>
+        <text class="stat-number">{{ disputedReconciliations }}</text>
+        <text class="stat-label">异议中</text>
       </view>
     </view>
     
-    <!-- 状态筛选 -->
+    <!-- 顶部筛选栏 -->
     <view class="filter-section">
-      <view class="filter-buttons">
-        <button :class="['filter-btn', activeFilter === 'all' ? 'active' : '']" @click="activeFilter = 'all'">全部</button>
-        <button :class="['filter-btn', activeFilter === 'pending' ? 'active' : '']" @click="activeFilter = 'pending'">待处理</button>
-        <button :class="['filter-btn', activeFilter === 'confirmed' ? 'active' : '']" @click="activeFilter = 'confirmed'">已确认</button>
-        <button :class="['filter-btn', activeFilter === 'rejected' ? 'active' : '']" @click="activeFilter = 'rejected'">已驳回</button>
+      <view class="filter-row">
+        <view class="filter-item">
+          <text class="filter-label">班组：</text>
+          <picker :value="selectedTeamIndex" :range="teams" @change="onTeamChange" class="filter-picker">
+            <text class="picker-text">{{ teams[selectedTeamIndex] }}</text>
+          </picker>
+        </view>
+        <view class="filter-item">
+          <text class="filter-label">用工类型：</text>
+          <picker :value="selectedWorkTypeIndex" :range="workTypes" @change="onWorkTypeChange" class="filter-picker">
+            <text class="picker-text">{{ workTypes[selectedWorkTypeIndex] }}</text>
+          </picker>
+        </view>
+      </view>
+      <view class="filter-row">
+        <view class="filter-item">
+          <text class="filter-label">对账状态：</text>
+          <picker :value="selectedStatusIndex" :range="statusOptions" @change="onStatusChange" class="filter-picker">
+            <text class="picker-text">{{ statusOptions[selectedStatusIndex] }}</text>
+          </picker>
+        </view>
+        <view class="filter-item">
+          <text class="filter-label">月份：</text>
+          <picker mode="date" fields="month" :value="selectedMonth" @change="onMonthChange" class="filter-picker">
+            <text class="picker-text">{{ selectedMonthText }}</text>
+          </picker>
+        </view>
       </view>
     </view>
     
@@ -46,13 +68,18 @@
       >
         <view class="reconciliation-header">
           <text class="reconciliation-title">对账 #{{ reconciliation.id }}</text>
-          <text :class="['reconciliation-status', reconciliation.status]">{{ getStatusText(reconciliation.status) }}</text>
+          <view class="header-right">
+            <text v-if="reconciliation.workType === 3" class="work-type-tag mixed">混合用工</text>
+            <text :class="['reconciliation-status', reconciliation.status]">{{ getStatusText(reconciliation.status) }}</text>
+          </view>
         </view>
         <view class="reconciliation-info">
           <text class="info-item">工人：{{ reconciliation.workerName }}</text>
+          <text class="info-item">用工类型：{{ getWorkTypeText(reconciliation.workType) }}</text>
           <text class="info-item">月份：{{ reconciliation.month }}</text>
           <text class="info-item">申请日期：{{ formatDate(reconciliation.applyDate) }}</text>
           <text class="info-item">对账金额：¥{{ reconciliation.amount }}</text>
+          <text v-if="reconciliation.workType === 3" class="info-item">计件工资：¥{{ reconciliation.pieceworkAmount }} | 计时工资：¥{{ reconciliation.hourlyAmount }}</text>
         </view>
         <view class="reconciliation-actions">
           <button 
@@ -60,7 +87,7 @@
             class="action-btn confirm-btn"
             @click.stop="confirmReconciliation(reconciliation)"
           >
-            确认
+            审核通过
           </button>
           <button 
             v-if="reconciliation.status === 'pending'" 
@@ -70,7 +97,14 @@
             驳回
           </button>
           <button 
-            v-if="reconciliation.status !== 'pending'" 
+            v-if="reconciliation.status === 'disputed'" 
+            class="action-btn handle-btn"
+            @click.stop="handleDispute(reconciliation)"
+          >
+            处理异议
+          </button>
+          <button 
+            v-if="reconciliation.status !== 'pending' && reconciliation.status !== 'disputed'" 
             class="action-btn view-btn"
             @click.stop="viewReconciliationDetail(reconciliation)"
           >
@@ -172,13 +206,21 @@
 export default {
   data() {
     return {
-      activeFilter: 'all',
-      showDetail: false,
-      selectedReconciliation: null,
+      // 筛选状态
+      selectedTeamIndex: 0,
+      selectedWorkTypeIndex: 0,
+      selectedStatusIndex: 0,
+      selectedMonth: new Date().toISOString().slice(0, 7),
+      // 筛选选项
+      teams: ['全部班组', '缝纫一组', '缝纫二组', '熨烫组', '包装组'],
+      workTypes: ['全部', '纯计件', '纯计时', '混合用工'],
+      statusOptions: ['全部', '待审核', '异议中', '已完成', '已驳回'],
+      // 对账数据
       reconciliations: [
         {
           id: 1,
           workerName: '张三',
+          workType: 1,
           month: '2024-08',
           applyDate: '2024-09-01',
           amount: 8500,
@@ -186,28 +228,46 @@ export default {
           transactions: [
             { date: '2024-08-01', type: 'income', amount: 850, description: '车工-牛仔裤' },
             { date: '2024-08-02', type: 'income', amount: 780, description: '车工-T恤' },
-            { date: '2024-08-03', type: 'income', amount: 820, description: '车工-外套' },
-            { date: '2024-08-10', type: 'expense', amount: 1000, description: '预支工资' },
-            { date: '2024-08-15', type: 'expense', amount: 150, description: '生活费' }
+            { date: '2024-08-03', type: 'income', amount: 820, description: '车工-外套' }
           ]
         },
         {
           id: 2,
           workerName: '李四',
+          workType: 2,
           month: '2024-08',
           applyDate: '2024-09-02',
           amount: 7800,
           status: 'pending',
           transactions: [
-            { date: '2024-08-01', type: 'income', amount: 750, description: '质检员' },
-            { date: '2024-08-02', type: 'income', amount: 750, description: '质检员' },
-            { date: '2024-08-03', type: 'income', amount: 750, description: '质检员' },
-            { date: '2024-08-05', type: 'expense', amount: 800, description: '生活费' }
+            { date: '2024-08-01', hours: 8, wage: 15, amount: 120, type: 'hourly', description: '计时考勤' },
+            { date: '2024-08-02', hours: 8, wage: 15, amount: 120, type: 'hourly', description: '计时考勤' },
+            { date: '2024-08-03', hours: 8, wage: 15, amount: 120, type: 'hourly', description: '计时考勤' }
           ]
         },
         {
           id: 3,
           workerName: '王五',
+          workType: 3,
+          month: '2024-08',
+          applyDate: '2024-09-03',
+          amount: 9200,
+          pieceworkAmount: 6000,
+          hourlyAmount: 3200,
+          status: 'disputed',
+          disputeContent: '8月15日工时计算错误',
+          disputeImage: '',
+          transactions: [
+            { date: '2024-08-01', type: 'income', amount: 500, description: '车工-牛仔裤' },
+            { date: '2024-08-01', hours: 2, wage: 15, amount: 30, type: 'hourly', description: '加班' },
+            { date: '2024-08-02', type: 'income', amount: 520, description: '车工-牛仔裤' },
+            { date: '2024-08-02', hours: 3, wage: 15, amount: 45, type: 'hourly', description: '加班' }
+          ]
+        },
+        {
+          id: 4,
+          workerName: '赵六',
+          workType: 1,
           month: '2024-07',
           applyDate: '2024-08-01',
           amount: 7200,
@@ -219,29 +279,65 @@ export default {
           ]
         },
         {
-          id: 4,
-          workerName: '赵六',
+          id: 5,
+          workerName: '孙七',
+          workType: 2,
           month: '2024-07',
           applyDate: '2024-08-02',
           amount: 6500,
           status: 'rejected',
-          rejectionReason: '部分记工记录与工厂记录不符，需要重新核对',
+          rejectionReason: '部分考勤记录与工厂记录不符，需要重新核对',
           transactions: [
-            { date: '2024-07-01', type: 'income', amount: 650, description: '缝纫工' },
-            { date: '2024-07-02', type: 'income', amount: 650, description: '缝纫工' },
-            { date: '2024-07-03', type: 'income', amount: 650, description: '缝纫工' }
+            { date: '2024-07-01', hours: 8, wage: 15, amount: 120, type: 'hourly', description: '计时考勤' },
+            { date: '2024-07-02', hours: 8, wage: 15, amount: 120, type: 'hourly', description: '计时考勤' },
+            { date: '2024-07-03', hours: 8, wage: 15, amount: 120, type: 'hourly', description: '计时考勤' }
           ]
         }
-      ]
+      ],
+      showDetail: false,
+      showDisputeModal: false,
+      selectedReconciliation: null,
+      disputeResolution: ''
     }
   },
   computed: {
     filteredReconciliations() {
-      if (this.activeFilter === 'all') {
-        return this.reconciliations
-      } else {
-        return this.reconciliations.filter(reconciliation => reconciliation.status === this.activeFilter)
-      }
+      return this.reconciliations.filter(reconciliation => {
+        // 班组筛选
+        if (this.selectedTeamIndex > 0) {
+          // 这里可以根据实际的班组ID进行筛选
+        }
+        
+        // 用工类型筛选
+        if (this.selectedWorkTypeIndex > 0) {
+          if (reconciliation.workType !== this.selectedWorkTypeIndex) {
+            return false
+          }
+        }
+        
+        // 状态筛选
+        if (this.selectedStatusIndex > 0) {
+          const statusMap = {
+            1: 'pending',
+            2: 'disputed',
+            3: 'confirmed',
+            4: 'rejected'
+          }
+          const status = statusMap[this.selectedStatusIndex]
+          if (reconciliation.status !== status) {
+            return false
+          }
+        }
+        
+        // 月份筛选
+        if (this.selectedMonth) {
+          if (reconciliation.month !== this.selectedMonth) {
+            return false
+          }
+        }
+        
+        return true
+      })
     },
     pendingReconciliations() {
       return this.reconciliations.filter(r => r.status === 'pending').length
@@ -252,8 +348,12 @@ export default {
     rejectedReconciliations() {
       return this.reconciliations.filter(r => r.status === 'rejected').length
     },
-    totalReconciliations() {
-      return this.reconciliations.length
+    disputedReconciliations() {
+      return this.reconciliations.filter(r => r.status === 'disputed').length
+    },
+    selectedMonthText() {
+      const date = new Date(this.selectedMonth)
+      return date.getFullYear() + '年' + (date.getMonth() + 1) + '月'
     }
   },
   methods: {
@@ -262,10 +362,19 @@ export default {
     },
     getStatusText(status) {
       switch (status) {
-        case 'pending': return '待处理'
-        case 'confirmed': return '已确认'
+        case 'pending': return '待审核'
+        case 'confirmed': return '已完成'
         case 'rejected': return '已驳回'
+        case 'disputed': return '异议中'
         default: return status
+      }
+    },
+    getWorkTypeText(workType) {
+      switch (workType) {
+        case 1: return '纯计件'
+        case 2: return '纯计时'
+        case 3: return '混合用工'
+        default: return '未知'
       }
     },
     formatDate(dateString) {
@@ -273,14 +382,27 @@ export default {
       const date = new Date(dateString)
       return date.toLocaleDateString()
     },
+    // 筛选器变化处理
+    onTeamChange(e) {
+      this.selectedTeamIndex = e.detail.value
+    },
+    onWorkTypeChange(e) {
+      this.selectedWorkTypeIndex = e.detail.value
+    },
+    onStatusChange(e) {
+      this.selectedStatusIndex = e.detail.value
+    },
+    onMonthChange(e) {
+      this.selectedMonth = e.detail.value
+    },
     viewReconciliationDetail(reconciliation) {
       this.selectedReconciliation = reconciliation
       this.showDetail = true
     },
     confirmReconciliation(reconciliation) {
       uni.showModal({
-        title: '确认对账',
-        content: `确定要确认 ${reconciliation.workerName} 的对账请求吗？\n对账金额：¥${reconciliation.amount}`,
+        title: '审核通过',
+        content: `确定要审核通过 ${reconciliation.workerName} 的对账请求吗？\n对账金额：¥${reconciliation.amount}`,
         confirmText: '确定',
         cancelText: '取消',
         success: (res) => {
@@ -293,7 +415,7 @@ export default {
             uni.setStorageSync('reconciliations', this.reconciliations)
             
             uni.showToast({
-              title: '对账已确认',
+              title: '审核通过',
               icon: 'success'
             })
             
@@ -333,6 +455,35 @@ export default {
           }
         }
       })
+    },
+    handleDispute(reconciliation) {
+      this.selectedReconciliation = reconciliation
+      this.disputeResolution = ''
+      this.showDisputeModal = true
+    },
+    resolveDispute() {
+      if (!this.disputeResolution.trim()) {
+        uni.showToast({
+          title: '请输入处理结果',
+          icon: 'none'
+        })
+        return
+      }
+      
+      // 更新状态
+      this.selectedReconciliation.status = 'confirmed'
+      this.selectedReconciliation.disputeResolution = this.disputeResolution
+      this.selectedReconciliation.resolveDate = new Date().toISOString()
+      
+      // 保存到本地存储
+      uni.setStorageSync('reconciliations', this.reconciliations)
+      
+      uni.showToast({
+        title: '异议处理完成',
+        icon: 'success'
+      })
+      
+      this.showDisputeModal = false
     }
   }
 }

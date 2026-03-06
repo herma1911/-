@@ -82,7 +82,7 @@ const userLevelConfig = {
   vip: {
     regionLimit: '全国',
     maxRecommendations: 999,
-    viewLimit: '全国完整旺季地图 + 全年工价走势预测 + VIP专属岗位池'
+    viewLimit: '全国完整旺季地图 + 全年工价走势预测 + 岗位池'
   }
 };
 
@@ -195,7 +195,7 @@ function generateRecommendations(userProfile, userLevel = 'free') {
   return recommendations.slice(0, maxRecommendations);
 }
 
-// 生成全年跑单最优路线（VIP专属）
+// 生成全年跑单最优路线
 function generateAnnualRoute(userProfile) {
   const route = [];
   const months = ['1-2', '3-4', '5-6', '7-8', '9-10', '11-12'];

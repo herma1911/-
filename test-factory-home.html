@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>测试工厂首页</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; }
+        button { padding: 10px 20px; margin: 5px; }
+        .result { margin: 10px 0; padding: 10px; background: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <h1>测试工厂首页</h1>
+    
+    <div class="test-section">
+        <h2>设置用户信息</h2>
+        <button onclick="setFactoryOwner()">设置为工厂主账号</button>
+        <button onclick="setSubAccount()">设置为子账号</button>
+        <button onclick="setNormalUser()">设置为普通个人账号</button>
+        <button onclick="clearStorage()">清除本地存储</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>当前存储状态</h2>
+        <div id="storage-status" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>测试导航</h2>
+        <button onclick="navigateToFactoryHome()">打开工厂首页</button>
+    </div>
+    
+    <script>
+        function setFactoryOwner() {
+            localStorage.setItem('userInfo', JSON.stringify({
+                isEnterprise: true,
+                role: '工厂主'
+            }));
+            localStorage.removeItem('boundCompany');
+            localStorage.removeItem('currentSubAccount');
+            updateStorageStatus();
+        }
+        
+        function setSubAccount() {
+            localStorage.setItem('userInfo', JSON.stringify({
+                isEnterprise: false,
+                boundCompany: '测试工厂'
+            }));
+            localStorage.setItem('boundCompany', '测试工厂');
+            localStorage.setItem('currentSubAccount', JSON.stringify({
+                role: '子账号',
+                modulePermissions: ['recruitment', 'onboarding', 'employment']
+            }));
+            updateStorageStatus();
+        }
+        
+        function setNormalUser() {
+            localStorage.setItem('userInfo', JSON.stringify({
+                isEnterprise: false
+            }));
+            localStorage.removeItem('boundCompany');
+            localStorage.removeItem('currentSubAccount');
+            updateStorageStatus();
+        }
+        
+        function clearStorage() {
+            localStorage.clear();
+            updateStorageStatus();
+        }
+        
+        function updateStorageStatus() {
+            const userInfo = localStorage.getItem('userInfo');
+            const boundCompany = localStorage.getItem('boundCompany');
+            const currentSubAccount = localStorage.getItem('currentSubAccount');
+            
+            document.getElementById('storage-status').innerHTML = `
+                <strong>userInfo:</strong> ${userInfo || '未设置'}<br>
+                <strong>boundCompany:</strong> ${boundCompany || '未设置'}<br>
+                <strong>currentSubAccount:</strong> ${currentSubAccount || '未设置'}
+            `;
+        }
+        
+        function navigateToFactoryHome() {
+            window.location.href = 'http://localhost:8080/pages/factory/factory-home.html';
+        }
+        
+        // 初始化显示存储状态
+        updateStorageStatus();
+    </script>
+</body>
+</html>
